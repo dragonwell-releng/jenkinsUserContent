@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Prepare variables
 BINARY=$1
-DIR="dragonwell8"
-IMAGE_TAG=$2
+RELEASE=$2
+DIR="dragonwell${RELEASE}"
 ARCH=`arch`
+
 
 # Prepare Dockerfiles
 LICENSE="#
@@ -24,55 +24,32 @@ LICENSE="#
 # based on adoptopenjdk script:
 # https://github.com/AdoptOpenJDK/openjdk-docker/blob/master/8/jdk/alpine/Dockerfile.hotspot.nightly.full"
 
-cat > Dockerfile << END_SH
-$LICENSE
-
-FROM centos:7
-
-RUN yum install -y tzdata openssl curl ca-certificates fontconfig gzip tar \\
-    && yum update -y; yum clean all
-
-ENV JAVA_VERSION dragonwell8u
-
-RUN set -eux; \\
-    BINARY_URL='$BINARY'; \\
-    DRAGONWELL_DIR=$DIR; \\
-    curl -LSo /tmp/dragonwell8.tar.gz \${BINARY_URL}; \\
-    rm -rf /opt/alibaba/; \\
-    mkdir -p /opt/alibaba/\${DRAGONWELL_DIR}; \\
-    cd /opt/alibaba/\${DRAGONWELL_DIR}; \\
-    tar -xf /tmp/dragonwell8.tar.gz --strip-components=1; \\
-    rm -rf /tmp/dragonwell8.tar.gz;
-
-ENV JAVA_HOME=/opt/alibaba/$DIR \\
-    PATH="/opt/alibaba/$DIR/bin:\$PATH"
-
-END_SH
-
 cat > Dockerfile.slim << END_SH
 $LICENSE
 
 FROM centos:7
 
-COPY slim-java/* /usr/local/bin/
-
 RUN yum install -y tzdata openssl curl ca-certificates fontconfig gzip tar \\
     && yum update -y; yum clean all
 
-ENV JAVA_VERSION dragonwell8u
+COPY slim-java/* /usr/local/bin/
+
+ENV JAVA_VERSION dragonwel${RELEASE}u
+
+COPY ${BINARY} /tmp/dragonwel${RELEASE}.tar.gz
+COPY slim-java/slim-java_rtjar_keep.list /usr/local/bin/slim-java_rtjar_keep.list
+COPY slim-java/slim-java_rtjar_del.list /usr/local/bin/slim-java_rtjar_del.list
 
 RUN set -eux; \\
-    BINARY_URL='$BINARY'; \\
     DRAGONWELL_DIR=$DIR; \\
-    curl -LSo /tmp/dragonwell8.tar.gz \${BINARY_URL}; \\
     rm -rf /opt/alibaba/; \\
     mkdir -p /opt/alibaba/\${DRAGONWELL_DIR}; \\
     cd /opt/alibaba/\${DRAGONWELL_DIR}; \\
-    tar -xf /tmp/dragonwell8.tar.gz --strip-components=1; \\
+    tar -xf /tmp/dragonwel${RELEASE}.tar.gz --strip-components=1; \\
     export PATH="/opt/alibaba/\${DRAGONWELL_DIR}/bin:\$PATH"; \\
     chmod 777 /usr/local/bin/slim-java.sh; \\
     /usr/local/bin/slim-java.sh /opt/alibaba/\${DRAGONWELL_DIR}; \\
-    rm -rf /tmp/dragonwell8.tar.gz;
+    rm -rf /tmp/dragonwel${RELEASE}.tar.gz;
 
 ENV JAVA_HOME=/opt/alibaba/$DIR \\
     PATH="/opt/alibaba/$DIR/bin:\$PATH"
@@ -88,19 +65,12 @@ operation_docker() {
     docker push ${DOCKER_ID}
 }
 
-
-export DOCKER_ID="registry.cn-hangzhou.aliyuncs.com/dragonwell/dragonwell:${IMAGE_TAG}_${ARCH}"
-export DOCKER_FILE=Dockerfile
-operation_docker
-
-
 echo "build slim java"
-export DOCKER_ID="registry.cn-hangzhou.aliyuncs.com/dragonwell/dragonwell:${IMAGE_TAG}_${ARCH}_slim"
+export DOCKER_ID="registry.cn-hangzhou.aliyuncs.com/dragonwell/dragonwell:${RELEASE}-nightly"
 export DOCKER_FILE=Dockerfile.slim
 mkdir slim-java
-wget https://raw.githubusercontent.com/AdoptOpenJDK/openjdk-docker/master/8/jdk/ubuntu/slim-java.sh -O slim-java/slim-java.sh
-wget https://raw.githubusercontent.com/AdoptOpenJDK/openjdk-docker/master/8/jdk/ubuntu/slim-java_rtjar_keep.list -O slim-java/slim-java_rtjar_keep.list;
-wget https://raw.githubusercontent.com/AdoptOpenJDK/openjdk-docker/master/8/jdk/ubuntu/slim-java_rtjar_del.list -O slim-java/slim-java_rtjar_del.list;
+wget https://raw.githubusercontent.com/AdoptOpenJDK/openjdk-docker/master/${RELEASE}/jdk/centos/slim-java.sh -O slim-java/slim-java.sh
+wget https://raw.githubusercontent.com/AdoptOpenJDK/openjdk-docker/master/${RELEASE}/jdk/centos/slim-java_rtjar_keep.list -O slim-java/slim-java_rtjar_keep.list
+wget https://raw.githubusercontent.com/AdoptOpenJDK/openjdk-docker/master/${RELEASE}/jdk/centos/slim-java_rtjar_del.list -O slim-java/slim-java_rtjar_del.list
 operation_docker
 rm -rf slim-java
-

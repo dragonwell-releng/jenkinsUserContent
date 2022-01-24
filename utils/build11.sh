@@ -3,6 +3,9 @@
 BINARY=$1
 DIR="dragonwell11"
 IMAGE_TAG=$2
+BINARYALPINE=$3
+ARCH=`arch`
+
 
 # Prepare Dockerfiles
 LICENSE="#
@@ -26,22 +29,47 @@ LICENSE="#
 cat > Dockerfile << END_SH
 $LICENSE
 
-FROM adoptopenjdk/centos7_build_image
+FROM centos:7
 
 RUN yum install -y tzdata openssl curl ca-certificates fontconfig gzip tar \\
     && yum update -y; yum clean all
 
-ENV JAVA_VERSION dragonwell11u
+ENV JAVA_VERSION dragonwel11u
 
 RUN set -eux; \\
     BINARY_URL='$BINARY'; \\
     DRAGONWELL_DIR=$DIR; \\
-    curl -LSo /tmp/dragonwell11.tar.gz \${BINARY_URL}; \\
+    curl -LSo /tmp/dragonwel11.tar.gz \${BINARY_URL}; \\
     rm -rf /opt/alibaba/; \\
     mkdir -p /opt/alibaba/\${DRAGONWELL_DIR}; \\
     cd /opt/alibaba/\${DRAGONWELL_DIR}; \\
-    tar -xf /tmp/dragonwell11.tar.gz --strip-components=1; \\
-    rm -rf /tmp/dragonwell11.tar.gz;
+    tar -xf /tmp/dragonwel11.tar.gz --strip-components=1; \\
+    rm -rf /tmp/dragonwel11.tar.gz;
+
+ENV JAVA_HOME=/opt/alibaba/$DIR \\
+    PATH="/opt/alibaba/$DIR/bin:\$PATH"
+
+END_SH
+
+cat > Dockerfile.alpine << END_SH
+$LICENSE
+
+FROM alpine:3.14
+
+RUN apk add --no-cache tzdata musl-locales musl-locales-lang \
+    && rm -rf /var/cache/apk/*
+
+ENV JAVA_VERSION dragonwel11u
+
+RUN set -eux; \\
+    BINARY_URL='$BINARYALPINE'; \\
+    DRAGONWELL_DIR=$DIR; \\
+    wget -O /tmp/dragonwel11.tar.gz \${BINARY_URL}; \\
+    rm -rf /opt/alibaba/; \\
+    mkdir -p /opt/alibaba/\${DRAGONWELL_DIR}; \\
+    cd /opt/alibaba/\${DRAGONWELL_DIR}; \\
+    tar -xf /tmp/dragonwel11.tar.gz --strip-components=1; \\
+    rm -rf /tmp/dragonwel11.tar.gz;
 
 ENV JAVA_HOME=/opt/alibaba/$DIR \\
     PATH="/opt/alibaba/$DIR/bin:\$PATH"
@@ -51,26 +79,27 @@ END_SH
 cat > Dockerfile.slim << END_SH
 $LICENSE
 
-FROM adoptopenjdk/centos7_build_image
-
-COPY slim-java/* /usr/local/bin/
+FROM centos:7
 
 RUN yum install -y tzdata openssl curl ca-certificates fontconfig gzip tar \\
     && yum update -y; yum clean all
 
-ENV JAVA_VERSION dragonwell8u
+COPY slim-java/* /usr/local/bin/
+
+ENV JAVA_VERSION dragonwel11u
 
 RUN set -eux; \\
     BINARY_URL='$BINARY'; \\
     DRAGONWELL_DIR=$DIR; \\
-    curl -LSo /tmp/dragonwell8.tar.gz \${BINARY_URL}; \\
+    curl -LSo /tmp/dragonwel11.tar.gz \${BINARY_URL}; \\
     rm -rf /opt/alibaba/; \\
     mkdir -p /opt/alibaba/\${DRAGONWELL_DIR}; \\
     cd /opt/alibaba/\${DRAGONWELL_DIR}; \\
-    tar -xf /tmp/dragonwell8.tar.gz --strip-components=1; \\
+    tar -xf /tmp/dragonwel11.tar.gz --strip-components=1; \\
     export PATH="/opt/alibaba/\${DRAGONWELL_DIR}/bin:\$PATH"; \\
+    chmod 777 /usr/local/bin/slim-java.sh; \\
     /usr/local/bin/slim-java.sh /opt/alibaba/\${DRAGONWELL_DIR}; \\
-    rm -rf /tmp/dragonwell8.tar.gz;
+    rm -rf /tmp/dragonwel11.tar.gz;
 
 ENV JAVA_HOME=/opt/alibaba/$DIR \\
     PATH="/opt/alibaba/$DIR/bin:\$PATH"
@@ -87,13 +116,23 @@ operation_docker() {
 }
 
 
-export DOCKER_ID="registry.cn-hangzhou.aliyuncs.com/dragonwell/dragonwell:${IMAGE_TAG}"
+export DOCKER_ID="registry.cn-hangzhou.aliyuncs.com/dragonwell/dragonwell:${IMAGE_TAG}_${ARCH}"
 export DOCKER_FILE=Dockerfile
 operation_docker
-export IMAGE_TAG="${IMAGE_TAG}_slim"
+
+if [ ! -z "${BINARYALPINE}" ]; then
+export DOCKER_ID="registry.cn-hangzhou.aliyuncs.com/dragonwell/dragonwell:${IMAGE_TAG}_alpine_${ARCH}"
+export DOCKER_FILE=Dockerfile.alpine
+operation_docker
+fi
+
+
+echo "build slim java"
+export DOCKER_ID="registry.cn-hangzhou.aliyuncs.com/dragonwell/dragonwell:${IMAGE_TAG}_${ARCH}_slim"
 export DOCKER_FILE=Dockerfile.slim
 mkdir slim-java
-cp ../slim-java/* slim-java
+wget https://raw.githubusercontent.com/AdoptOpenJDK/openjdk-docker/master/8/jdk/ubuntu/slim-java.sh -O slim-java/slim-java.sh
+wget https://raw.githubusercontent.com/AdoptOpenJDK/openjdk-docker/master/8/jdk/ubuntu/slim-java_rtjar_keep.list -O slim-java/slim-java_rtjar_keep.list;
+wget https://raw.githubusercontent.com/AdoptOpenJDK/openjdk-docker/master/8/jdk/ubuntu/slim-java_rtjar_del.list -O slim-java/slim-java_rtjar_del.list;
 operation_docker
 rm -rf slim-java
-

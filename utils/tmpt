@@ -1,0 +1,15 @@
+public void testRunWithBinding6() {
+    ScopeLocal<String> name = ScopeLocal.inheritableForType(String.class);
+    ScopeLocal.where(name, "fred", () -> {
+    assertTrue(name.isBound());
+    assertTrue("fred".equals(name.get()));
+    ScopeLocal.where(name, "joe", () -> {
+        assertTrue(name.isBound());
+        assertTrue("joe".equals(name.get()));
+        ensureInherited(name);
+        });
+    assertTrue(name.isBound());
+    assertTrue("fred".equals(name.get()));
+    ensureInherited(name);
+    });
+}
