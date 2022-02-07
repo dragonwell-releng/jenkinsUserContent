@@ -69,7 +69,7 @@ if (params.RELEASE == "8") {
 } else {
     PARENT_JOB_NAME = ""
     JDK_NAME = ""
-    PLATFORMS = ["x64_linux", "x86_windows", "x64_alpine-linux", "aarch64_linux"]
+    PLATFORMS = ["x64_linux", "x64_windows", "x64_alpine-linux", "aarch64_linux"]
     REPO = "dragonwell17"
     HEAD = "OpenJDK17-jdk"
     BUILDER = "http://ci.dragonwell-jdk.io/userContent/utils/build17.sh"
