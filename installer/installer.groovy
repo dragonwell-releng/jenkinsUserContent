@@ -75,6 +75,7 @@ if (params.RELEASE == "8") {
     BUILDER = "http://ci.dragonwell-jdk.io/userContent/utils/build17.sh"
 }
 
+DOCKER_IMAGE_MAP = [:]
 
 // for Chinese and English version
 def updateReleaseNotes() {
@@ -101,10 +102,10 @@ pipeline {
         string(name: 'BUILDNUMBER',
                 defaultValue: "latest",
                 description: 'Build number')
-        booleanParam(defaultValue: false,
+        booleanParam(defaultValue: true,
                 description: 'copy release oss',
                 name: 'OSS')
-        booleanParam(defaultValue: false,
+        booleanParam(defaultValue: true,
                 description: 'release on github',
                 name: 'GITHUB')
         booleanParam(defaultValue: true,
@@ -113,19 +114,9 @@ pipeline {
         booleanParam(defaultValue: true,
                 description: 'clean workspace',
                 name: 'CLEAN')
-        booleanParam(defaultValue: false,
+        booleanParam(defaultValue: true,
                 description: 'update wiki',
                 name: 'WIKI')
-        string(name: 'DOCKER_URL',
-                defaultValue: "latest",
-                description: 'Build number')
-        string(name: 'DOCKER_ALPINE_URL',
-                defaultValue: "latest",
-                description: 'Build number')
-        string(name: 'DOCKER_ARM_URL',
-                defaultValue: "latest",
-                description: 'Build number')
-
     }
     environment {
         HSF_HOME = "/home/admin/hsf/benchmark"
@@ -173,6 +164,7 @@ pipeline {
                                     sh "${OSS_TOOL} cp -f ${releaseFile} oss://dragonwell/${params.VERSION}/${releaseFile}"
                                     print "https://dragonwell.oss-cn-shanghai.aliyuncs.com/${params.VERSION}/${releaseFile}"
                                     RELEASE_MAP["${releaseFile}"] = "https://dragonwell.oss-cn-shanghai.aliyuncs.com/${params.VERSION}/${releaseFile}"
+                                    DOCKER_IMAGE_MAP["${platform}"] = "https://dragonwell.oss-cn-shanghai.aliyuncs.com/${params.VERSION}/${releaseFile}"
                                 } else if (checksum.matches()) {
                                     def releaseFile = "Alibaba_Dragonwell_${params.VERSION}_${platform}.${tailPattern}.sha256.txt"
                                     sh "mv ${file} ${releaseFile}"
@@ -220,8 +212,8 @@ pipeline {
             steps {
                 script {
                     sh "docker login"
-                    def url = "${params.DOCKER_URL}"
-                    def urlAlpine = "${params.DOCKER_ALPINE_URL}"
+                    def url = DOCKER_IMAGE_MAP["x64_linux"]
+                    def urlAlpine = DOCKER_IMAGE_MAP["x64_alpine-linux"]
                     sh "wget ${BUILDER} -O build.sh"
                     sh "sh build.sh ${url} ${tagName4Docker} ${urlAlpine}"
                 }
@@ -238,7 +230,7 @@ pipeline {
             steps {
                 script {
                     sh "docker login"
-                    def url = "${params.DOCKER_ARM_URL}"
+                    def url = DOCKER_IMAGE_MAP["x64_linux"]
                     def urlAlpine = ""
                     sh "wget ${BUILDER} -O build.sh"
                     sh "sh build.sh ${url} ${tagName4Docker} ${urlAlpine}"
