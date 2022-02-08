@@ -135,7 +135,7 @@ def checkArtifactContent(platform) {
             def unzipCommand = suffix == "tar.gz" ? "tar xf" : "unzip"
             sh "${unzipCommand} jdk.${suffix}"
 
-            def java_home = sh returnStdout: true, script: "ls . | grep jdk | grep -v ${suffix}"
+            def java_home = sh returnStdout: true, script: "ls . | grep dragonwell | grep -v ${suffix}"
             java_home = java_home.trim()
             unzippedDirCheck(java_home)
             if (platform != "alpine") {
