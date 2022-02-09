@@ -121,6 +121,8 @@ if [ -n "$sys" ];then
   # system is windows
   if [ -n "`echo ${java_version_info} | grep 'OpenJDK 64-Bit'`" ];then
     let res++
+  else
+    echo "${java_version_info} not contain OpenJDK 64-Bit"
   fi
 else
   if [ -z "`echo ${java_version_info} | grep 'OpenJDK 64-Bit'`" ];then
