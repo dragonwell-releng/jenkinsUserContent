@@ -119,9 +119,7 @@ sys=`uname -a | grep -i cygwin`
 res=0
 if [ -n "$sys" ];then
   # system is windows
-  if [ "$openjdk_version" -eq 17 ] && [ -n "`echo ${java_version_info} | grep 'OpenJDK 32-Bit'`" ];then
-    let res++
-  elif [ "$openjdk_version" -ne 17 ] && [ -n "`echo ${java_version_info} | grep 'OpenJDK 64-Bit'`" ];then
+  if [ -n "`echo ${java_version_info} | grep 'OpenJDK 64-Bit'`" ];then
     let res++
   fi
 else
