@@ -33,10 +33,10 @@ if [ ! -f "${java_home}/bin/java" ];then
 fi
 java_bin=${java_home}/bin/java
 
+#17.0.1.0.1+12
+#17.0.2.0.2+8
 if [ "${openjdk_version}" -eq 17 ];then
-  if [ -z "`echo ${curr_version} | grep -E '^[1-9][0-9]*((\.0)*\.[1-9][0-9]*)*\+(0|[1-9][0-9]*)$'`" ];then
-    err_exit "invalid version, does not conform to the named regular expression!"
-  elif [ -z "`echo ${curr_version} | grep -E '^[1-9][0-9]*((\.0)*\.[1-9][0-9]*)*$'`" ];then
+  if [ -z "`echo ${curr_version} | grep -E '^([0-9]+)(\.([0-9]+))?(\.([0-9]+))?(\.([0-9]+))?(\.([0-9]+))?(\.([0-9]+))?(\.([0-9]+))?(-([a-zA-Z0-9]+))?(((\+)([0-9]*))?(-([-a-zA-Z0-9.]+))?)?$'`" ];then
     err_exit "invalid version, does not conform to the named regular expression!"
   fi
 fi
