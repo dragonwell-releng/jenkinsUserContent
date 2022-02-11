@@ -212,8 +212,12 @@ pipeline {
             steps {
                 script {
                     sh "docker login"
-                    def url = DOCKER_IMAGE_MAP["x64_linux"].replace("+", "%2B")
-                    def urlAlpine = DOCKER_IMAGE_MAP["x64_alpine-linux"].replace("+", "%2B")
+                    def url = DOCKER_IMAGE_MAP["x64_linux"]
+                    def urlAlpine = DOCKER_IMAGE_MAP["x64_alpine-linux"]
+                    if (params.RELEASE == "17") {
+                        url = url.replace("+", "%2B")
+                        urlAlpine = urlAlpine.replace("+", "%2B")
+                    }
                     sh "wget ${BUILDER} -O build.sh"
                     sh "sh build.sh ${url} ${tagName4Docker} ${urlAlpine}"
                 }
@@ -230,7 +234,10 @@ pipeline {
             steps {
                 script {
                     sh "docker login"
-                    def url = DOCKER_IMAGE_MAP["aarch64_linux"].replace("+", "%2B")
+                    def url = DOCKER_IMAGE_MAP["aarch64_linux"]
+                    if (params.RELEASE == "17") {
+                        url = url.replace("+", "%2B")
+                    }
                     def urlAlpine = ""
                     sh "wget ${BUILDER} -O build.sh"
                     sh "sh build.sh ${url} ${tagName4Docker} ${urlAlpine}"
