@@ -61,14 +61,14 @@ def exec_shell(cmd, cwd=".", timeout=120, display=False):
 if __name__ == "__main__":
     args = parse_argument()
     table_data = []
-    paths = [""]
+    paths = [args.path]
 
     upstream_patches=[]
     internal_patches=[]
     malformed_patches=[]
 
     if ("dragonwell8" in args.repo):
-        paths.append(["jdk", "hotspot"])
+        paths.append([args.path + "/jdk",  args.path +"hotspot"])
     for path in paths:
         repo_dir = os.path.join(args.repo, path)
         repo = git.Repo(repo_dir)
