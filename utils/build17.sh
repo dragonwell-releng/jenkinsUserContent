@@ -107,7 +107,7 @@ ENV JAVA_HOME=/opt/alibaba/$DIR \\
 END_SH
 
 operation_docker() {
-    docker build -f $DOCKER_FILE -t ${DOCKER_ID} .
+    docker build --no-cache -f $DOCKER_FILE -t ${DOCKER_ID} .
     RET=`docker run -it --rm ${DOCKER_ID} sh -c "java -version"`
     str_sanitized=$(echo $RET | tr -d '\r')
     echo "Java version check:"
