@@ -68,7 +68,8 @@ if __name__ == "__main__":
     malformed_patches=[]
 
     if ("dragonwell8" in args.repo):
-        paths.append(["jdk", "hotspot"])
+        paths.append("jdk")
+        paths.append("hotspot")
     for path in paths:
         repo_dir = os.path.join(args.repo, path)
         repo = git.Repo(repo_dir)
