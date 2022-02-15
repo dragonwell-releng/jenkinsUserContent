@@ -153,9 +153,9 @@ def unzippedDirCheck(java_home) {
     if (params.RELEASE == "17") {
         check_dirname = java_home.contains(publishtag)
     } else if (params.RELEASE == "8") {
-        check_dirname = java_home.contains(strippedOpenJDKTagWithoutBuildNumber(openjdktag))
+        check_dirname = java_home.contains(publishtag)
     } else if (params.RELEASE == "11" ) {
-        check_dirname = java_home.contains(strippedOpenJDKTagWithoutBuildNumber(openjdktag))
+        check_dirname = java_home.contains(publishtag)
     }
     if (check_dirname == false) {
         error "compress package dirname is wrong"
