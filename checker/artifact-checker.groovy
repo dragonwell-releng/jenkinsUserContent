@@ -200,7 +200,7 @@ pipeline {
                     URL apiUrl = new URL("https://api.github.com/repos/alibaba/dragonwell${params.RELEASE}/releases")
                     echo "https://api.adoptium.net/v3/assets/latest/${params.RELEASE}/hotspot?vendor=eclipse"
                     URL openjdkUrl = new URL("https://api.adoptium.net/v3/assets/latest/${params.RELEASE}/hotspot?vendor=eclipse")
-                    def card = new JsonSlurper().parseText(apiUrl.text.trim())
+                    def card = new JsonSlurper().parseText(apiUrl.text.trim()).findAll { it.get("prerelease") == true }
                     def openjdk_card = new JsonSlurper().parseText(openjdkUrl.text.trim())
                     openjdktag = openjdk_card[0].get("release_name")
                     def arr = []
