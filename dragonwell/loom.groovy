@@ -7,6 +7,9 @@ pipeline {
         choice(name: 'ThreadMode', choices: 'Virtual\nSystem',
                 description: 'Use virtual or system')
     }
+    agent {
+        label 'TFB:loom'
+    }
     stages {
         stage('iterateHistory') {
             agent {
