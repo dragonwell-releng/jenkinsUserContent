@@ -4,7 +4,7 @@ pipeline {
         buildDiscarder(logRotator(numToKeepStr: '15', artifactDaysToKeepStr: '15'))
     }
     parameters {
-        choice(name: 'ThreadMode', choices: 'Virtual\nSystem',
+        choice(name: 'ThreadMode', choices: 'Virtual\nSystem\nOptimized',
                 description: 'Use virtual or system')
     }
     agent {
@@ -17,12 +17,17 @@ pipeline {
             }
             steps {
                 script {
-                    def branch = params.ThreadMode == "Virtual" ? "master" : "system"
+                    def test = ""
+                    switch (params.ThreadMode) {
+                        case "Virtual": test = 'netty-virtual'; break;
+                        case "System":  test = 'netty'; break;
+                        case "Optimized":  test = 'netty-optimized'; break;
+                    }
                     checkout([$class                           : 'GitSCM',
-                              branches                         : [[name: "*/${branch}"]],
+                              branches                         : [[name: "*/master"]],
                               doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [],
                               userRemoteConfigs                : [[url: 'https://github.com/joeyleeeeeee97/FrameworkBenchmarks.git']]])
-                    sh "./tfb --network-mode='host'  --database-host='172.31.141.248' --client-host='172.31.141.248' --server-host='172.31.141.247' --test netty"
+                    sh "./tfb --network-mode='host'  --database-host='172.31.141.248' --client-host='172.31.141.248' --server-host='172.31.141.247' --test ${test}"
                 }
             }
         }
