@@ -29,6 +29,7 @@ pipeline {
                               branches                         : [[name: "*/master"]],
                               doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [],
                               userRemoteConfigs                : [[url: 'https://github.com/joeyleeeeeee97/FrameworkBenchmarks.git']]])
+                    sh "git clean -ffdx"
                     sh "./tfb --network-mode='host'  --database-host='172.31.141.248' --client-host='172.31.141.248' --server-host='172.31.141.247' --test ${test}"
                     archiveArtifacts artifacts: 'results/**/results.json', followSymlinks: false
                 }
