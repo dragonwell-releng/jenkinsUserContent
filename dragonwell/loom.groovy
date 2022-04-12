@@ -17,6 +17,8 @@ pipeline {
             }
             steps {
                 script {
+                    currentBuild.description = "netty ${params.ThreadMode}"
+
                     def test = ""
                     switch (params.ThreadMode) {
                         case "Virtual": test = 'netty-virtual'; break;
@@ -28,6 +30,7 @@ pipeline {
                               doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [],
                               userRemoteConfigs                : [[url: 'https://github.com/joeyleeeeeee97/FrameworkBenchmarks.git']]])
                     sh "./tfb --network-mode='host'  --database-host='172.31.141.248' --client-host='172.31.141.248' --server-host='172.31.141.247' --test ${test}"
+                    archiveArtifacts artifacts: 'results/**/results.json', followSymlinks: false
                 }
             }
         }
