@@ -6,6 +6,8 @@ pipeline {
     parameters {
         choice(name: 'ThreadMode', choices: 'Virtual\nSystem\nOptimized',
                 description: 'Use virtual or system')
+        choice(name: 'FrameworkMode', choices: 'Sync\nAsync',
+                description: 'Submit to a biz executor or not')
     }
     agent {
         label 'TFB:loom'
@@ -21,9 +23,24 @@ pipeline {
 
                     def test = ""
                     switch (params.ThreadMode) {
-                        case "Virtual": test = 'netty-virtual'; break;
-                        case "System":  test = 'netty'; break;
-                        case "Optimized":  test = 'netty-optimized'; break;
+                        case "Virtual":
+                            if (params.FrameworkMode == "Sync")
+                                test = 'netty-virtual';
+                            else
+                                test = 'netty-asyncv'
+                            break;
+                        case "System":
+                            if (params.FrameworkMode == "Sync")
+                                test = 'netty';
+                            else
+                                test = 'netty-asyncp'
+                            break;
+                        case "Optimized":
+                            if (params.FrameworkMode == "Sync")
+                                test = 'netty-optimized';
+                            else
+                                test = "netty-asynco"
+                            break;
                     }
                     checkout([$class                           : 'GitSCM',
                               branches                         : [[name: "*/master"]],
