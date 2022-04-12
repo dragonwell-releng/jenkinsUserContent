@@ -31,6 +31,8 @@ pipeline {
                               userRemoteConfigs                : [[url: 'https://github.com/joeyleeeeeee97/FrameworkBenchmarks.git']]])
                     sh "git clean -ffdx"
                     sh "./tfb --network-mode='host'  --database-host='172.31.141.248' --client-host='172.31.141.248' --server-host='172.31.141.247' --test ${test}"
+                    def results = findFiles(glob: 'results/**/results.json')
+                    sh "python3 --files ${results[0].path} --data latencyAvg latencyMax"
                     archiveArtifacts artifacts: 'results/**/results.json', followSymlinks: false
                 }
             }
