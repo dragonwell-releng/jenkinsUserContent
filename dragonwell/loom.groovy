@@ -17,7 +17,7 @@ pipeline {
             }
             steps {
                 script {
-                    currentBuild.description = "netty ${params.ThreadMode}"
+                    currentBuild.displayName = "netty ${params.ThreadMode}"
 
                     def test = ""
                     switch (params.ThreadMode) {
