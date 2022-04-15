@@ -23,7 +23,7 @@ pipeline {
                 script {
                     currentBuild.displayName = "netty ${params.ThreadMode} ${params.FrameworkMode}"
 
-                    if (params.ThreadMode == "Async" && params.FrameworkMode == "spring") {
+                    if (params.ThreadMode == "Async" && params.Test == "spring") {
                         return
                     }
 
@@ -32,21 +32,21 @@ pipeline {
                     switch (params.ThreadMode) {
                         case "Virtual":
                             if (params.FrameworkMode == "Sync")
-                                test = "${params.FrameworkMode}-virtual"
+                                test = "${params.Test}-virtual"
                             else
-                                test = "${params.FrameworkMode}-asyncv"
+                                test = "${params.Test}-asyncv"
                             break;
                         case "System":
                             if (params.FrameworkMode == "Sync")
-                                test = "${params.FrameworkMode}"
+                                test = "${params.Test}"
                             else
-                                test = "${params.FrameworkMode}-asyncp"
+                                test = "${params.Test}-asyncp"
                             break;
                         case "Optimized":
                             if (params.FrameworkMode == "Sync")
-                                test = "${params.FrameworkMode}-optimized"
+                                test = "${params.Test}-optimized"
                             else
-                                test = "${params.FrameworkMode}-asynco"
+                                test = "${params.Test}-asynco"
                             break;
                     }
                     checkout([$class                           : 'GitSCM',
