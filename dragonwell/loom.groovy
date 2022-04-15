@@ -37,8 +37,12 @@ pipeline {
                                 test = "${params.Test}-asyncv"
                             break;
                         case "System":
-                            if (params.FrameworkMode == "Sync")
-                                test = "${params.Test}"
+                            if (params.FrameworkMode == "Sync") {
+                                if (params.Test == "spring")
+                                    test = "${params.Test}-mongo"
+                                else
+                                    test = "${params.Test}"
+                            }
                             else
                                 test = "${params.Test}-asyncp"
                             break;
