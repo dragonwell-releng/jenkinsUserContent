@@ -21,7 +21,7 @@ pipeline {
             }
             steps {
                 script {
-                    currentBuild.displayName = "netty ${params.ThreadMode} ${params.FrameworkMode}"
+                    currentBuild.displayName = "${params.Test} ${params.ThreadMode} ${params.FrameworkMode}"
 
                     if (params.ThreadMode == "Async" && params.Test == "spring") {
                         return
