@@ -8,6 +8,8 @@ pipeline {
                 description: 'Use virtual or system')
         choice(name: 'FrameworkMode', choices: 'Sync\nAsync',
                 description: 'Submit to a biz executor or not')
+        choice(name: 'Test', choices: 'netty\nspring',
+                description: 'which framework we use?')
     }
     agent {
         label 'TFB:loom'
@@ -21,25 +23,30 @@ pipeline {
                 script {
                     currentBuild.displayName = "netty ${params.ThreadMode} ${params.FrameworkMode}"
 
+                    if (params.ThreadMode == "Async" && params.FrameworkMode == "spring") {
+                        return
+                    }
+
+
                     def test = ""
                     switch (params.ThreadMode) {
                         case "Virtual":
                             if (params.FrameworkMode == "Sync")
-                                test = 'netty-virtual';
+                                test = "${params.FrameworkMode}-virtual"
                             else
-                                test = 'netty-asyncv'
+                                test = "${params.FrameworkMode}-asyncv"
                             break;
                         case "System":
                             if (params.FrameworkMode == "Sync")
-                                test = 'netty';
+                                test = "${params.FrameworkMode}"
                             else
-                                test = 'netty-asyncp'
+                                test = "${params.FrameworkMode}-asyncp"
                             break;
                         case "Optimized":
                             if (params.FrameworkMode == "Sync")
-                                test = 'netty-optimized';
+                                test = "${params.FrameworkMode}-optimized"
                             else
-                                test = "netty-asynco"
+                                test = "${params.FrameworkMode}-asynco"
                             break;
                     }
                     checkout([$class                           : 'GitSCM',
