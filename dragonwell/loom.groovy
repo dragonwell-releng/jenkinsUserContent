@@ -53,7 +53,7 @@ pipeline {
                                 test = "${params.Test}-asynco"
                             break;
                         case "VirtualBiz":
-                            test = "spiring-virtualbiz"
+                            test = "spring-virtualbiz"
                     }
                     checkout([$class                           : 'GitSCM',
                               branches                         : [[name: "*/master"]],
