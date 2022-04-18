@@ -4,7 +4,7 @@ pipeline {
         buildDiscarder(logRotator(numToKeepStr: '15', artifactDaysToKeepStr: '15'))
     }
     parameters {
-        choice(name: 'ThreadMode', choices: 'Virtual\nSystem\nOptimized\nVirtualBiz',
+        choice(name: 'ThreadMode', choices: 'Virtual\nSystem\nOptimized\nVirtualBiz\nPreferOio',
                 description: 'Use virtual or system')
         choice(name: 'FrameworkMode', choices: 'Sync\nAsync',
                 description: 'Submit to a biz executor or not')
@@ -54,6 +54,10 @@ pipeline {
                             break;
                         case "VirtualBiz":
                             test = "spring-virtualbiz"
+                            break;
+                        case "PreferOio":
+                            test = "netty-preferoio"
+                            break;
                     }
                     checkout([$class                           : 'GitSCM',
                               branches                         : [[name: "*/master"]],
