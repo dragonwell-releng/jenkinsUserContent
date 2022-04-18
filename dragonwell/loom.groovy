@@ -4,7 +4,7 @@ pipeline {
         buildDiscarder(logRotator(numToKeepStr: '15', artifactDaysToKeepStr: '15'))
     }
     parameters {
-        choice(name: 'ThreadMode', choices: 'Virtual\nSystem\nOptimized',
+        choice(name: 'ThreadMode', choices: 'Virtual\nSystem\nOptimized\nVirtualBiz',
                 description: 'Use virtual or system')
         choice(name: 'FrameworkMode', choices: 'Sync\nAsync',
                 description: 'Submit to a biz executor or not')
@@ -52,6 +52,8 @@ pipeline {
                             else
                                 test = "${params.Test}-asynco"
                             break;
+                        case "VirtualBiz":
+                            test = "spiring-virtualbiz"
                     }
                     checkout([$class                           : 'GitSCM',
                               branches                         : [[name: "*/master"]],
