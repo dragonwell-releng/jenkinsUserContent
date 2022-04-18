@@ -1,7 +1,7 @@
 pipeline {
     options {
         durabilityHint('PERFORMANCE_OPTIMIZED')
-        buildDiscarder(logRotator(numToKeepStr: '999999', artifactDaysToKeepStr: '15'))
+        buildDiscarder(logRotator(numToKeepStr: '999999', artifactDaysToKeepStr: '3650'))
     }
     parameters {
         choice(name: 'ThreadMode', choices: 'Virtual\nSystem\nOptimized\nVirtualBiz\nPreferOio',
