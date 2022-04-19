@@ -39,7 +39,7 @@ pipeline {
                         case "System":
                             if (params.FrameworkMode == "Sync") {
                                 if (params.Test == "spring")
-                                    test = "${params.Test}-mongo"
+                                    test = "${params.Test}"
                                 else
                                     test = "${params.Test}"
                             }
