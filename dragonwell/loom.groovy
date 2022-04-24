@@ -64,7 +64,7 @@ pipeline {
                               doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [],
                               userRemoteConfigs                : [[url: 'https://github.com/joeyleeeeeee97/FrameworkBenchmarks.git']]])
                     sh "git clean -ffdx"
-                    sh "./tfb --network-mode='host'  --database-host='172.31.141.248' --client-host='172.31.141.248' --server-host='172.31.141.247' --concurrency-levels 4 8 16 32 64 128  --pipeline-concurrency-levels 128 256 512 1024 --duration 30 --test ${test}"
+                    sh "./tfb --network-mode='host'  --database-host='172.31.141.248' --client-host='172.31.141.248' --server-host='172.31.141.247' --concurrency-levels 4 8 16 32 64 128  --pipeline-concurrency-levels 32 64 128 256  --duration 30 --test ${test}"
                     def results = findFiles(glob: 'results/**/results.json')
                     sh "python3 prettytable_result_parser.py --files ${results[0].path} --data latencyAvg latencyMax"
                     archiveArtifacts artifacts: 'results/**/results.json', followSymlinks: false
