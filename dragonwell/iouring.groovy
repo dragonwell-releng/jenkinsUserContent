@@ -48,7 +48,7 @@ pipeline {
                                             "-H 'Host: 172.31.141.247'" +
                                             " -H 'Accept: text/plain,text/html;q=0.9,application/xhtml+xml;q=0.9,application/xml;q=0.8,*/*;q=0.7'" +
                                             " -H 'Connection: keep-alive' " +
-                                            "--latency -d 10 -c ${c} --timeout 8 -t ${t} " +
+                                            "--latency -d ${duration} -c ${c} --timeout 8 -t ${t} " +
                                             "http://192.168.0.235:8080/plaintext"
                                 }
                             }
