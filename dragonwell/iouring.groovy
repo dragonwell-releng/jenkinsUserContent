@@ -1,4 +1,4 @@
-def connections = [1, 16, 64, 128, 256, 512, 1024]
+def connections = [4, 16, 64, 128, 256, 512, 1024]
 def threads = [4]
 def duration = 30
 
