@@ -27,7 +27,7 @@ pipeline {
                             try {
                                 def mode = params.MODE == "iouring" ? "true" : "false"
                                 timeout(time: 5, unit: 'MINUTES') {
-                                    sh "java -DtryIOUring=${mode} -jar netty-example-0.1-jar-with-dependencies.jar"
+                                    sh "java -DtryIOUring=${mode} -jar /root/netty-example-0.1-jar-with-dependencies.jar"
                                 }
                             } catch (err) {
                                 //ignore
