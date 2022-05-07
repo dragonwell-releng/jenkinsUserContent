@@ -180,7 +180,7 @@ pipeline {
                                     "target_commitish": "master",
                                     "name"            : "Alibaba_Dragonwell_${params.VERSION}",
                                     "body"            : "",
-                                    "draft"           : true,
+                                    "draft"           : false,
                                     "prerelease"      : true
                             ])
                             writeFile file: 'release.json', text: releaseJson.toPrettyString()
