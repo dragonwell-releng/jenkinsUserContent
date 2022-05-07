@@ -278,13 +278,23 @@ pipeline {
                             }
                             sh "wget http://ci.dragonwell-jdk.io/userContent/utils/driller.py -O driller.py"
                             def gitLogReport = sh(script: "python3 driller.py --repo /repo/dragonwell${params.RELEASE} ${fromTag} --totag master --release ${params.RELEASE}", returnStdout: true)
-                            def newReleasenotes = """
+                            if (params.RELEASE == "8") {
+                              def newReleasenotes = """
+# Alibaba Dragonwell ${params.VERSION}-GA
+ ```
+${fullVersionOutput}
+ ```
+${gitLogReport}
+""" + releasenots
+                            } else {
+                              def newReleasenotes = """
 # ${params.VERSION}
  ```
 ${fullVersionOutput}
  ```
 ${gitLogReport}
 """ + releasenots
+                            }
                             writeFile file: "Alibaba-Dragonwell${slash}${params.RELEASE}-Release-Notes.md", text: newReleasenotes
                             sh "git add Alibaba-Dragonwell${slash}${params.RELEASE}-Release-Notes.md"
                             sh "git commit -m \" update Alibaba-Dragonwell${slash}${params.RELEASE}-Release-Notes.md \""
