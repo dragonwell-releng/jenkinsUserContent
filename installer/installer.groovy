@@ -13,7 +13,7 @@ def slash = "-"
 if (params.RELEASE == "8")
     slash = ""
 
-def tagName4Docker = params.GITHUBTAG
+def tagName4Docker = params.GITHUBVERSION
 def versionName4OSS = params.VERSION
 if (params.RELEASE == "17") {
     tagName4Docker = tagName4Docker.replace("+", ".") // + is not allowed is docker image
@@ -33,10 +33,10 @@ if (params.RELEASE == "8") {
 
 | File name | China mainland | United States |
 |---|---|---|
-| Alibaba_Dragonwell_jdk-${params.VERSION}_aarch64_linux.tar.gz | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${versionName4OSS}_aarch64_linux.tar.gz) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/download/${params.GITHUBTAG}/Alibaba_Dragonwell_${versionName4OSS}_aarch64_linux.tar.gz) |
-| Alibaba_Dragonwell_jdk-${params.VERSION}_x64_alpine-linux.tar.gz | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${versionName4OSS}_x64_alpine-linux.tar.gz) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/releases/download/${params.GITHUBTAG}/Alibaba_Dragonwell_${versionName4OSS}_x64_alpine-linux.tar.gz) |
-| Alibaba_Dragonwell_jdk-${params.VERSION}_x64-linux.tar.gz | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${versionName4OSS}_x64_linux.tar.gz) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/releases/download/${params.GITHUBTAG}/Alibaba_Dragonwell_${versionName4OSS}_x64_linux.tar.gz) |
-| Alibaba_Dragonwell_jdk-${params.VERSION}_x86_windows.zip | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${versionName4OSS}_x86_windows.zip) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/releases/download/${params.GITHUBTAG}/Alibaba_Dragonwell_${versionName4OSS}_x86_windows.zip) |
+| Alibaba_Dragonwell_jdk-${params.VERSION}_aarch64_linux.tar.gz | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${versionName4OSS}_aarch64_linux.tar.gz) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${versionName4OSS}_aarch64_linux.tar.gz) |
+| Alibaba_Dragonwell_jdk-${params.VERSION}_x64_alpine-linux.tar.gz | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${versionName4OSS}_x64_alpine-linux.tar.gz) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/releases/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${versionName4OSS}_x64_alpine-linux.tar.gz) |
+| Alibaba_Dragonwell_jdk-${params.VERSION}_x64-linux.tar.gz | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${versionName4OSS}_x64_linux.tar.gz) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/releases/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${versionName4OSS}_x64_linux.tar.gz) |
+| Alibaba_Dragonwell_jdk-${params.VERSION}_x86_windows.zip | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${versionName4OSS}_x86_windows.zip) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/releases/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${versionName4OSS}_x86_windows.zip) |
 """
 } else {
     MIRROS_DOWNLOAD_TEMPLATE = """
@@ -44,10 +44,10 @@ if (params.RELEASE == "8") {
 
 | File name | China mainland | United States |
 |---|---|---|
-| Alibaba_Dragonwell_jdk-${params.VERSION}_aarch64_linux.tar.gz | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${versionName4OSS}_aarch64_linux.tar.gz) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/download/${params.GITHUBTAG}/Alibaba_Dragonwell_${versionName4OSS}_aarch64_linux.tar.gz) |
-| Alibaba_Dragonwell_jdk-${params.VERSION}_x64_alpine-linux.tar.gz | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${versionName4OSS}_x64_alpine-linux.tar.gz) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/releases/download/${params.GITHUBTAG}/Alibaba_Dragonwell_${versionName4OSS}_x64_alpine-linux.tar.gz) |
-| Alibaba_Dragonwell_jdk-${params.VERSION}_x64-linux.tar.gz | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${versionName4OSS}_x64_linux.tar.gz) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/releases/download/${params.GITHUBTAG}/Alibaba_Dragonwell_${versionName4OSS}_x64_linux.tar.gz) |
-| Alibaba_Dragonwell_jdk-${params.VERSION}_x64_windows.zip | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${versionName4OSS}_x64_windows.zip) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/releases/download/${params.GITHUBTAG}/Alibaba_Dragonwell_${versionName4OSS}_x64_windows.zip) |
+| Alibaba_Dragonwell_jdk-${params.VERSION}_aarch64_linux.tar.gz | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${versionName4OSS}_aarch64_linux.tar.gz) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${versionName4OSS}_aarch64_linux.tar.gz) |
+| Alibaba_Dragonwell_jdk-${params.VERSION}_x64_alpine-linux.tar.gz | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${versionName4OSS}_x64_alpine-linux.tar.gz) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/releases/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${versionName4OSS}_x64_alpine-linux.tar.gz) |
+| Alibaba_Dragonwell_jdk-${params.VERSION}_x64-linux.tar.gz | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${versionName4OSS}_x64_linux.tar.gz) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/releases/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${versionName4OSS}_x64_linux.tar.gz) |
+| Alibaba_Dragonwell_jdk-${params.VERSION}_x64_windows.zip | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${versionName4OSS}_x64_windows.zip) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/releases/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${versionName4OSS}_x64_windows.zip) |
 """
 }
 
@@ -96,8 +96,11 @@ pipeline {
         string(name: 'VERSION',
                 defaultValue: "11.0.10.5",
                 description: 'Pipeline build Number')
-        string(name: 'GITHUBTAG',
+        string(name: 'GITHUBVERSION',
                 defaultValue: "11.0.10.5-GA",
+                description: 'Github version')
+        string(name: 'GITHUBTAG',
+                defaultValue: "dragonwell-11.0.10.5_jdk-11.0.10+0",
                 description: 'Github tag')
         string(name: 'BUILDNUMBER',
                 defaultValue: "latest",
