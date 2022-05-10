@@ -13,9 +13,9 @@ def slash = "-"
 if (params.RELEASE == "8")
     slash = ""
 
-def tagName4Docker = params.GITHUBVERSION
+def tagName4Docker = params.GITHUBTAG
 def versionName4OSS = params.VERSION
-if (params.RELEASE == "17") {
+if (params.RELEASE == "17" || params.RELEASE == "11") {
     tagName4Docker = tagName4Docker.replace("+", ".") // + is not allowed is docker image
     versionName4OSS = versionName4OSS.replace("+", "%2B")
 }
