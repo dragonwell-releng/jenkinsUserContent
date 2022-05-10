@@ -290,6 +290,17 @@ ${fullVersionOutput}
  ```
 ${gitLogReport}
 """ + releasenots
+                            } else if (params.RELEASE == "11") {
+                              def suffix = params.VERSION.substring(0, xx.lastIndexOf("."))
+                              def patchNum = params.VERSION.substring(xx.lastIndexOf(".") + 1)
+                              def newVersion = "${suffix}+${patchNum}"
+                              newReleasenotes = """
+# ${newVersion}
+ ```
+${fullVersionOutput}
+ ```
+${gitLogReport}
+""" + releasenots
                             } else {
                               newReleasenotes = """
 # ${params.VERSION}
