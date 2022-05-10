@@ -273,13 +273,14 @@ pipeline {
                             def card = new JsonSlurper().parse(apiUrl)
                             def fromTag = ""
                             if (card.size() > 1) {
-                                def lastRelease = card[0].get("tag_name")
+                                def lastRelease = card[1].get("tag_name")
                                 fromTag = "--fromtag ${lastRelease}"
                             }
                             sh "wget http://ci.dragonwell-jdk.io/userContent/utils/driller.py -O driller.py"
                             def gitLogReport = sh(script: "python3 driller.py --repo /repo/dragonwell${params.RELEASE} ${fromTag} --totag master --release ${params.RELEASE}", returnStdout: true)
+                            def newReleasenotes = ""
                             if (params.RELEASE == "8") {
-                              def newReleasenotes = """
+                              newReleasenotes = """
 # Alibaba Dragonwell ${params.VERSION}-GA
  ```
 ${fullVersionOutput}
@@ -287,7 +288,7 @@ ${fullVersionOutput}
 ${gitLogReport}
 """ + releasenots
                             } else {
-                              def newReleasenotes = """
+                              newReleasenotes = """
 # ${params.VERSION}
  ```
 ${fullVersionOutput}
