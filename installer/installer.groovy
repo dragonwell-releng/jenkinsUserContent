@@ -278,9 +278,11 @@ pipeline {
                             if (card.size() > 1) {
                                 def lastRelease = card[1].get("tag_name")
                                 fromTag = "--fromtag ${lastRelease}"
+                                def curRelease = card[0].get("tag_name")
+                                toTag = "--totag ${curRelease}"
                             }
                             sh "wget http://ci.dragonwell-jdk.io/userContent/utils/driller.py -O driller.py"
-                            def gitLogReport = sh(script: "python3 driller.py --repo /repo/dragonwell${params.RELEASE} ${fromTag} --totag master --release ${params.RELEASE}", returnStdout: true)
+                            def gitLogReport = sh(script: "python3 driller.py --repo /repo/dragonwell${params.RELEASE} ${fromTag} ${toTag} --release ${params.RELEASE}", returnStdout: true)
                             def newReleasenotes = ""
                             if (params.RELEASE == "8") {
                               newReleasenotes = """
@@ -291,8 +293,8 @@ ${fullVersionOutput}
 ${gitLogReport}
 """ + releasenots
                             } else if (params.RELEASE == "11") {
-                              def suffix = params.VERSION.substring(0, xx.lastIndexOf("."))
-                              def patchNum = params.VERSION.substring(xx.lastIndexOf(".") + 1)
+                              def suffix = params.VERSION.substring(0, params.VERSION.lastIndexOf("."))
+                              def patchNum = params.VERSION.substring(params.VERSION.lastIndexOf(".") + 1)
                               def newVersion = "${suffix}+${patchNum}"
                               newReleasenotes = """
 # ${newVersion}
