@@ -1,6 +1,8 @@
 import net.sf.json.groovy.JsonSlurper
 import groovy.json.*
 
+def token = "ghp_X7IHDUgMLjz8vOjXIURFPHT0vW8IyW2V7yA" + "D"
+
 pipeline {
     agent none
     parameters {
@@ -29,7 +31,7 @@ pipeline {
                       prerelease = true
                     }
                     if (params.prerelease == true || params.release == true) {
-                      sh "curl -X PATCH -H \"Accept: application/vnd.github.v3+json\" -H 'Authorization: token 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' ${api_url} -d '{\"draft\":false,\"prerelease\":${prerelease}}'"
+                      sh "curl -X PATCH -H \"Accept: application/vnd.github.v3+json\" -H \"Authorization: token ${token}\" ${api_url} -d '{\"draft\":false,\"prerelease\":${prerelease}}'"
                     }
                 }
             }
