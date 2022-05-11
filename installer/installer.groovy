@@ -208,11 +208,13 @@ pipeline {
                             id = id.trim()
                             for (file in RELEASE_MAP) {
                                 def assetName = file.key
-                                sh "curl -Ss -XPOST -H \"Authorization:token ${TOKEN}\" -H \"Content-Type:application/zip\" --data-binary @${assetName} https://uploads.github.com/repos/alibaba/${REPO}/releases/${id}/assets?name=${assetName}"
+                                def urlAssetName = assetName.replace("+", "%2B")
+                                sh "curl -Ss -XPOST -H \"Authorization:token ${TOKEN}\" -H \"Content-Type:application/zip\" --data-binary @${assetName} https://uploads.github.com/repos/alibaba/${REPO}/releases/${id}/assets?name=${urlAssetName}"
                             }
                             for (file in CHECKSUM_MAP) {
                                 def assetName = file.key
-                                sh "curl -Ss -XPOST -H \"Authorization:token ${TOKEN}\" -H \"Content-Type:text/plain\" --data-binary @${assetName} https://uploads.github.com/repos/alibaba/${REPO}/releases/${id}/assets?name=${assetName}"
+                                def urlAssetName = assetName.replace("+", "%2B")
+                                sh "curl -Ss -XPOST -H \"Authorization:token ${TOKEN}\" -H \"Content-Type:text/plain\" --data-binary @${assetName} https://uploads.github.com/repos/alibaba/${REPO}/releases/${id}/assets?name=${urlAssetName}"
                             }
                         }
                     }
