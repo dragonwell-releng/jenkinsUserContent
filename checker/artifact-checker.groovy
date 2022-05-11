@@ -137,9 +137,15 @@ def checkArtifactContent(platform) {
 
             def java_home = sh returnStdout: true, script: "ls . | grep dragonwell | grep -v ${suffix}"
             java_home = java_home.trim()
-            unzippedDirCheck(java_home)
+            if (params.RELEASE == "11") {
+              suffix = publishtag.substring(0, publishtag.lastIndexOf("."))
+              patchNum = publishtag.substring(publishtag.lastIndexOf(".") + 1)
+              newPublishtag = "${suffix}+${patchNum}"
+              println "Release Version 11, change publish tag to ${newPublishtag}"
+            }
+            unzippedDirCheck(java_home, newPublishtag)
             if (platform != "alpine") {
-                def res = sh script: "bash check_tag.sh ${publishtag} ${params.RELEASE} ${java_home} ${openjdktag}"
+                def res = sh script: "bash check_tag.sh ${newPublishtag} ${params.RELEASE} ${java_home} ${openjdktag}"
                 addResult("Check${platform}CompressedPackage", res, resultMsg("version", ""))
             }
             sh "rm -rf ${java_home}"
@@ -148,7 +154,7 @@ def checkArtifactContent(platform) {
 }
 
 
-def unzippedDirCheck(java_home) {
+def unzippedDirCheck(java_home, publishtag) {
     def check_dirname = false;
     if (params.RELEASE == "17") {
         check_dirname = java_home.contains(publishtag)

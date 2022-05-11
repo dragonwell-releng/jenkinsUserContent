@@ -38,9 +38,24 @@ if (params.RELEASE == "8") {
 | Alibaba_Dragonwell_jdk-${params.VERSION}_x64-linux.tar.gz | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${versionName4OSS}_x64_linux.tar.gz) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/releases/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${versionName4OSS}_x64_linux.tar.gz) |
 | Alibaba_Dragonwell_jdk-${params.VERSION}_x86_windows.zip | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${versionName4OSS}_x86_windows.zip) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/releases/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${versionName4OSS}_x86_windows.zip) |
 """
+} else if (params.RELEASE == "11") {
+    def newTitle = params.VERSION.substring(0, params.VERSION.lastIndexOf("."))
+    if (params.GITHUBVERSION.contains("-GA")) {
+      newTitle = "${newTitle}-GA"
+    }
+    MIRROS_DOWNLOAD_TEMPLATE = """
+# ${newTitle}
+
+| File name | China mainland | United States |
+|---|---|---|
+| Alibaba_Dragonwell_jdk-${params.VERSION}_aarch64_linux.tar.gz | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${versionName4OSS}_aarch64_linux.tar.gz) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${versionName4OSS}_aarch64_linux.tar.gz) |
+| Alibaba_Dragonwell_jdk-${params.VERSION}_x64_alpine-linux.tar.gz | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${versionName4OSS}_x64_alpine-linux.tar.gz) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/releases/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${versionName4OSS}_x64_alpine-linux.tar.gz) |
+| Alibaba_Dragonwell_jdk-${params.VERSION}_x64-linux.tar.gz | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${versionName4OSS}_x64_linux.tar.gz) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/releases/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${versionName4OSS}_x64_linux.tar.gz) |
+| Alibaba_Dragonwell_jdk-${params.VERSION}_x64_windows.zip | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${versionName4OSS}_x64_windows.zip) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/releases/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${versionName4OSS}_x64_windows.zip) |
+"""
 } else {
     MIRROS_DOWNLOAD_TEMPLATE = """
-# ${params.VERSION}
+# ${params.GITHUBVERSION}
 
 | File name | China mainland | United States |
 |---|---|---|
@@ -294,8 +309,8 @@ ${gitLogReport}
 """ + releasenots
                             } else if (params.RELEASE == "11") {
                               def suffix = params.VERSION.substring(0, params.VERSION.lastIndexOf("."))
-                              def patchNum = params.VERSION.substring(params.VERSION.lastIndexOf(".") + 1)
-                              def newVersion = "${suffix}+${patchNum}"
+                              //def patchNum = params.VERSION.substring(params.VERSION.lastIndexOf(".") + 1)
+                              def newVersion = "${suffix}"
                               newReleasenotes = """
 # ${newVersion}
  ```

@@ -56,12 +56,20 @@ if [ "$openjdk_version" -eq 8 ];then
   fi
 fi
 
-if [ "${openjdk_version}" -eq 17 ];then
+if [ "${openjdk_version}" -eq 11 ] || [ "${openjdk_version}" -eq 17 ];then
   curr_patch_num=`echo ${curr_version##*+}`
   curr_version=`echo ${curr_version%%+*}`
 else
   curr_patch_num=0
 fi
+
+echo "upstream:
+patchNum: ${upstream_patch_num}
+tag: ${upstream_tag}
+jdkVersion: ${java_version}
+jdkPatchNum: ${java_patch_num}
+curPatchNum: ${curr_patch_num}
+curVersion: ${curr_version}"
 
 old_IFS=$IFS
 IFS=$'.'
