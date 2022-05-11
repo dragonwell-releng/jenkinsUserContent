@@ -142,6 +142,8 @@ def checkArtifactContent(platform) {
               patchNum = publishtag.substring(publishtag.lastIndexOf(".") + 1)
               newPublishtag = "${suffix}+${patchNum}"
               println "Release Version 11, change publish tag to ${newPublishtag}"
+            } else {
+              newPublishtag = publishtag
             }
             unzippedDirCheck(java_home, newPublishtag)
             if (platform != "alpine") {
