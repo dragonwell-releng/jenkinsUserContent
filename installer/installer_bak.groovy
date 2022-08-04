@@ -1,0 +1,404 @@
+import groovy.json.*
+
+properties[
+        [$class: 'JiraProjectProperty'],
+        [$class: 'RebuildSettings', autoRebuild: false, rebuildDisabled: false],
+]
+OSS_TOOL = "/home/testuser/ossutil64"
+TOKEN = "ghp_KI10VDceecSlImTXHnhK0cWm7prLUc0oFsU" + "S"
+RELEASE_MAP = [:]
+CHECKSUM_MAP = [:]
+
+def slash = "-"
+if (params.RELEASE == "8")
+    slash = ""
+
+def tagName4Docker = params.GITHUBTAG
+def versionName4OSS = params.VERSION
+if (params.RELEASE == "17" || params.RELEASE == "11") {
+    tagName4Docker = tagName4Docker.replace("+", ".") // + is not allowed is docker image
+    versionName4OSS = versionName4OSS.replace("+", "%2B")
+}
+
+
+DOCKER_IMAGES_TEMPLATE1 = "| registry.cn-hangzhou.aliyuncs.com/dragonwell/dragonwell:VERSION_x86_64 | x86_64 | centos | No |"
+DOCKER_IMAGES_TEMPLATE2 = "| registry.cn-hangzhou.aliyuncs.com/dragonwell/dragonwell:VERSION_aarch64 | aarch64 | centos | No |"
+DOCKER_IMAGES_TEMPLATE3 = "| registry.cn-hangzhou.aliyuncs.com/dragonwell/dragonwell:VERSION_x86_64_slim | x86_64 | centos | Yes |"
+DOCKER_IMAGES_TEMPLATE4 = "| registry.cn-hangzhou.aliyuncs.com/dragonwell/dragonwell:VERSION_aarch64_slim | aarch64 | centos | Yes |"
+DOCKER_IMAGES_TEMPLATE5 = "| registry.cn-hangzhou.aliyuncs.com/dragonwell/dragonwell:VERSION_alpine_x86_64 | x86_64 | alpine | No |"
+
+if (params.RELEASE == "8") {
+    MIRROS_DOWNLOAD_TEMPLATE = """
+# ${params.VERSION}
+
+| File name | China mainland | United States |
+|---|---|---|
+| Alibaba_Dragonwell_jdk-${params.VERSION}_aarch64_linux.tar.gz | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${versionName4OSS}_aarch64_linux.tar.gz) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${versionName4OSS}_aarch64_linux.tar.gz) |
+| Alibaba_Dragonwell_jdk-${params.VERSION}_x64_alpine-linux.tar.gz | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${versionName4OSS}_x64_alpine-linux.tar.gz) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/releases/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${versionName4OSS}_x64_alpine-linux.tar.gz) |
+| Alibaba_Dragonwell_jdk-${params.VERSION}_x64-linux.tar.gz | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${versionName4OSS}_x64_linux.tar.gz) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/releases/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${versionName4OSS}_x64_linux.tar.gz) |
+| Alibaba_Dragonwell_jdk-${params.VERSION}_x86_windows.zip | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${versionName4OSS}_x86_windows.zip) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/releases/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${versionName4OSS}_x86_windows.zip) |
+"""
+} else if (params.RELEASE == "11") {
+    def newTitle = params.VERSION.substring(0, params.VERSION.lastIndexOf("."))
+    if (params.GITHUBVERSION.contains("-GA")) {
+      newTitle = "${newTitle}-GA"
+    }
+    MIRROS_DOWNLOAD_TEMPLATE = """
+# ${newTitle}
+
+| File name | China mainland | United States |
+|---|---|---|
+| Alibaba_Dragonwell_jdk-${params.VERSION}_aarch64_linux.tar.gz | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${versionName4OSS}_aarch64_linux.tar.gz) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${versionName4OSS}_aarch64_linux.tar.gz) |
+| Alibaba_Dragonwell_jdk-${params.VERSION}_x64_alpine-linux.tar.gz | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${versionName4OSS}_x64_alpine-linux.tar.gz) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/releases/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${versionName4OSS}_x64_alpine-linux.tar.gz) |
+| Alibaba_Dragonwell_jdk-${params.VERSION}_x64-linux.tar.gz | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${versionName4OSS}_x64_linux.tar.gz) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/releases/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${versionName4OSS}_x64_linux.tar.gz) |
+| Alibaba_Dragonwell_jdk-${params.VERSION}_x64_windows.zip | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${versionName4OSS}_x64_windows.zip) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/releases/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${versionName4OSS}_x64_windows.zip) |
+"""
+} else {
+    MIRROS_DOWNLOAD_TEMPLATE = """
+# ${params.GITHUBVERSION}
+
+| File name | China mainland | United States |
+|---|---|---|
+| Alibaba_Dragonwell_jdk-${params.VERSION}_aarch64_linux.tar.gz | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${versionName4OSS}_aarch64_linux.tar.gz) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${versionName4OSS}_aarch64_linux.tar.gz) |
+| Alibaba_Dragonwell_jdk-${params.VERSION}_x64_alpine-linux.tar.gz | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${versionName4OSS}_x64_alpine-linux.tar.gz) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/releases/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${versionName4OSS}_x64_alpine-linux.tar.gz) |
+| Alibaba_Dragonwell_jdk-${params.VERSION}_x64-linux.tar.gz | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${versionName4OSS}_x64_linux.tar.gz) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/releases/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${versionName4OSS}_x64_linux.tar.gz) |
+| Alibaba_Dragonwell_jdk-${params.VERSION}_x64_windows.zip | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${versionName4OSS}_x64_windows.zip) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/releases/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${versionName4OSS}_x64_windows.zip) |
+"""
+}
+
+
+if (params.RELEASE == "8") {
+    PARENT_JOB_NAME = ""
+    JDK_NAME = ""
+    PLATFORMS = ["x64_linux", "x64_windows", "aarch64_linux"]
+    REPO = "dragonwell8"
+    HEAD = "OpenJDK8U-jdk_"
+    BUILDER = "http://ci.dragonwell-jdk.io/userContent/utils/build.sh"
+} else if (params.RELEASE == "11") {
+    PARENT_JOB_NAME = ""
+    JDK_NAME = ""
+    PLATFORMS = ["x64_linux", "x64_windows", "x64_alpine-linux", "aarch64_linux"]
+    REPO = "dragonwell11"
+    HEAD = "OpenJDK11U-jdk_"
+    BUILDER = "http://ci.dragonwell-jdk.io/userContent/utils/build11.sh"
+} else {
+    PARENT_JOB_NAME = ""
+    JDK_NAME = ""
+    PLATFORMS = ["x64_linux", "x64_windows", "x64_alpine-linux", "aarch64_linux"]
+    REPO = "dragonwell17"
+    HEAD = "OpenJDK17-jdk"
+    BUILDER = "http://ci.dragonwell-jdk.io/userContent/utils/build17.sh"
+}
+
+DOCKER_IMAGE_MAP = [:]
+
+// for Chinese and English version
+def updateReleaseNotes() {
+
+}
+
+pipeline {
+    options {
+        durabilityHint('PERFORMANCE_OPTIMIZED')
+        buildDiscarder(logRotator(numToKeepStr: '15', artifactDaysToKeepStr: '15'))
+    }
+    agent {
+        label 'master'
+    }
+    parameters {
+        choice(name: 'RELEASE', choices: '17\n11\n8\n',
+                description: 'Use which Multiplexing')
+        string(name: 'VERSION',
+                defaultValue: "11.0.10.5",
+                description: 'Pipeline build Number')
+        string(name: 'GITHUBVERSION',
+                defaultValue: "11.0.10.5-GA",
+                description: 'Github version')
+        string(name: 'GITHUBTAG',
+                defaultValue: "dragonwell-11.0.10.5_jdk-11.0.10+0",
+                description: 'Github tag')
+        string(name: 'BUILDNUMBER',
+                defaultValue: "latest",
+                description: 'Build number')
+        booleanParam(defaultValue: true,
+                description: 'copy release oss',
+                name: 'OSS')
+        booleanParam(defaultValue: true,
+                description: 'release on github',
+                name: 'GITHUB')
+        booleanParam(defaultValue: true,
+                description: 'release on docker',
+                name: 'DOCKER')
+        booleanParam(defaultValue: true,
+                description: 'clean workspace',
+                name: 'CLEAN')
+        booleanParam(defaultValue: true,
+                description: 'update wiki',
+                name: 'WIKI')
+    }
+    environment {
+        HSF_HOME = "/home/admin/hsf/benchmark"
+    }
+    stages {
+        stage('publishOssGithub') {
+            when {
+                // Only say hello if a "greeting" is requested
+                expression { params.OSS == true }
+            }
+            agent {
+                label 'ossworker'
+            }
+            steps {
+                script {
+                    if (params.CLEAN) {
+                        sh "rm -rf /home/testuser/jenkins/workspace/dragonwell-oss-installer/workspace/target/"
+                        copyArtifacts(
+                                projectName: "build-scripts/openjdk${params.RELEASE}-pipeline",
+                                filter: "**/${HEAD}*dragonwell*tar.gz*",
+                                selector: specific("${params.BUILDNUMBER}"),
+                                fingerprintArtifacts: true,
+                                target: "workspace/target/",
+                                flatten: true)
+                        copyArtifacts(
+                                projectName: "build-scripts/openjdk${params.RELEASE}-pipeline",
+                                filter: "**/${HEAD}*dragonwell*zip*",
+                                selector: specific("${params.BUILDNUMBER}"),
+                                fingerprintArtifacts: true,
+                                target: "workspace/target/",
+                                flatten: true)
+                    }
+                    dir("workspace/target/") {
+                        files = sh(script: 'ls', returnStdout: true).split()
+                        for (String platform : PLATFORMS) {
+                            def tailPattern = (platform != "x64_windows") ? "tar.gz" : "zip"
+                            def tarPattern = ".+${platform}.+${tailPattern}"
+                            def checkPattern = ".+${platform}.+sha256.txt"
+                            for (String file : files) {
+                                final p = file =~ /${tarPattern}/
+                                final checksum = file =~ /${checkPattern}/
+                                if (p.matches()) {
+                                    def releaseFile = "Alibaba_Dragonwell_${params.VERSION}_${platform}.${tailPattern}"
+                                    sh "mv ${file} ${releaseFile}"
+                                    sh "${OSS_TOOL} cp -f ${releaseFile} oss://dragonwell/${params.VERSION}/${releaseFile}"
+                                    print "https://dragonwell.oss-cn-shanghai.aliyuncs.com/${params.VERSION}/${releaseFile}"
+                                    RELEASE_MAP["${releaseFile}"] = "https://dragonwell.oss-cn-shanghai.aliyuncs.com/${params.VERSION}/${releaseFile}"
+                                    DOCKER_IMAGE_MAP["${platform}"] = "https://dragonwell.oss-cn-shanghai.aliyuncs.com/${params.VERSION}/${releaseFile}"
+                                } else if (checksum.matches()) {
+                                    def releaseFile = "Alibaba_Dragonwell_${params.VERSION}_${platform}.${tailPattern}.sha256.txt"
+                                    sh "mv ${file} ${releaseFile}"
+                                    sh "${OSS_TOOL} cp -f ${releaseFile} oss://dragonwell/${params.VERSION}/${releaseFile}"
+                                    print "https://dragonwell.oss-cn-shanghai.aliyuncs.com/${params.VERSION}/${releaseFile}"
+                                    CHECKSUM_MAP["${releaseFile}"] = "https://dragonwell.oss-cn-shanghai.aliyuncs.com/${params.VERSION}/${releaseFile}"
+                                }
+                            }
+                        }
+                        if (params.GITHUB) {
+                            def releaseJson = new JsonBuilder([
+                                    "tag_name"        : "${params.GITHUBTAG}",
+                                    "target_commitish": "master",
+                                    "name"            : "Alibaba_Dragonwell_${params.VERSION}",
+                                    "body"            : "",
+                                    "draft"           : false,
+                                    "prerelease"      : true
+                            ])
+                            writeFile file: 'release.json', text: releaseJson.toPrettyString()
+                            def release = sh(script: "curl -XPOST -H \"Authorization:token ${TOKEN}\" --data @release.json https://api.github.com/repos/alibaba/${REPO}/releases", returnStdout: true)
+                            writeFile file: 'result.json', text: "${release}"
+                            def id = sh(script: "cat result.json | grep id | head -n 1 | awk -F\"[:,]\"  '{ print \$2 }' | awk '{print \$1}'", returnStdout: true)
+                            id = id.trim()
+                            for (file in RELEASE_MAP) {
+                                def assetName = file.key
+                                def urlAssetName = assetName.replace("+", "%2B")
+                                sh "curl -Ss -XPOST -H \"Authorization:token ${TOKEN}\" -H \"Content-Type:application/zip\" --data-binary @${assetName} https://uploads.github.com/repos/alibaba/${REPO}/releases/${id}/assets?name=${urlAssetName}"
+                            }
+                            for (file in CHECKSUM_MAP) {
+                                def assetName = file.key
+                                def urlAssetName = assetName.replace("+", "%2B")
+                                sh "curl -Ss -XPOST -H \"Authorization:token ${TOKEN}\" -H \"Content-Type:text/plain\" --data-binary @${assetName} https://uploads.github.com/repos/alibaba/${REPO}/releases/${id}/assets?name=${urlAssetName}"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        stage('publishDocker-x64') {
+            when {
+                // Only say hello if a "greeting" is requested
+                expression { params.DOCKER == true }
+            }
+            agent {
+                label 'docker:x64'
+            }
+            steps {
+                script {
+                    sh "docker login"
+                    def url = DOCKER_IMAGE_MAP["x64_linux"]
+                    def urlAlpine = DOCKER_IMAGE_MAP["x64_alpine-linux"]
+                    if (params.RELEASE == "17") {
+                        url = url.replace("+", "%2B")
+                        urlAlpine = urlAlpine.replace("+", "%2B")
+                    }
+                    sh "wget ${BUILDER} -O build.sh"
+                    sh "sh build.sh ${url} ${tagName4Docker} ${urlAlpine}"
+                }
+            }
+        }
+        stage('publishDocker-aarch64') {
+            when {
+                // Only say hello if a "greeting" is requested
+                expression { params.DOCKER == true }
+            }
+            agent {
+                label 'docker:aarch64'
+            }
+            steps {
+                script {
+                    sh "docker login"
+                    def url = DOCKER_IMAGE_MAP["aarch64_linux"]
+                    if (params.RELEASE == "17") {
+                        url = url.replace("+", "%2B")
+                    }
+                    def urlAlpine = ""
+                    sh "wget ${BUILDER} -O build.sh"
+                    sh "sh build.sh ${url} ${tagName4Docker} ${urlAlpine}"
+                }
+            }
+        }
+
+        stage('wiki-update') {
+            when {
+                // Only say hello if a "greeting" is requested
+                expression { params.WIKI == true }
+            }
+            agent {
+                label 'ossworker'
+            }
+            steps {
+                script {
+                    sh "rm -rf workspace/target/ || true"
+                    dir("/repo/dragonwell${params.RELEASE}") {
+                        sh "git fetch origin"
+                        sh "git reset --hard origin/master"
+                    }
+                    dir("/root/wiki/dragonwell${params.RELEASE}.wiki") {
+                        print "更新ReleaseNotes"
+                        sh "git fetch origin && git reset --hard origin/master"
+                        sh(script: "docker run  registry.cn-hangzhou.aliyuncs.com/dragonwell/dragonwell:${tagName4Docker}_x86_64_slim java -version 2> tmpt")
+                        def fullVersionOutput = sh(script: "cat tmpt", returnStdout: true).trim()
+                        print "fullversion is ${fullVersionOutput}"
+                        def releasenots = sh(script: "cat Alibaba-Dragonwell${slash}${params.RELEASE}-Release-Notes.md", returnStdout: true).trim()
+                        if (!releasenots.contains("${params.VERSION}")) {
+                            print "更新 ${params.VERSION} 到 Alibaba-Dragonwell${slash}${params.RELEASE}-Release-Notes.md"
+                            URL apiUrl = new URL("https://api.github.com/repos/alibaba/dragonwell${params.RELEASE}/releases")
+                            def card = new JsonSlurper().parse(apiUrl)
+                            def fromTag = ""
+                            if (card.size() > 1) {
+                                def lastRelease = card[1].get("tag_name")
+                                fromTag = "--fromtag ${lastRelease}"
+                                def curRelease = card[0].get("tag_name")
+                                toTag = "--totag ${curRelease}"
+                            }
+                            sh "wget http://ci.dragonwell-jdk.io/userContent/utils/driller.py -O driller.py"
+                            def gitLogReport = sh(script: "python3 driller.py --repo /repo/dragonwell${params.RELEASE} ${fromTag} ${toTag} --release ${params.RELEASE}", returnStdout: true)
+                            def newReleasenotes = ""
+                            if (params.RELEASE == "8") {
+                              newReleasenotes = """
+# Alibaba Dragonwell ${params.VERSION}-GA
+ ```
+${fullVersionOutput}
+ ```
+${gitLogReport}
+""" + releasenots
+                            } else if (params.RELEASE == "11") {
+                              def suffix = params.VERSION.substring(0, params.VERSION.lastIndexOf("."))
+                              //def patchNum = params.VERSION.substring(params.VERSION.lastIndexOf(".") + 1)
+                              def newVersion = "${suffix}"
+                              newReleasenotes = """
+# ${newVersion}
+ ```
+${fullVersionOutput}
+ ```
+${gitLogReport}
+""" + releasenots
+                            } else {
+                              newReleasenotes = """
+# ${params.VERSION}
+ ```
+${fullVersionOutput}
+ ```
+${gitLogReport}
+""" + releasenots
+                            }
+                            writeFile file: "Alibaba-Dragonwell${slash}${params.RELEASE}-Release-Notes.md", text: newReleasenotes
+                            sh "git add Alibaba-Dragonwell${slash}${params.RELEASE}-Release-Notes.md"
+                            sh "git commit -m \" update Alibaba-Dragonwell${slash}${params.RELEASE}-Release-Notes.md \""
+                            sh "git push origin HEAD:master"
+                            if (fileExists("阿里巴巴Dragonwell${params.RELEASE}发布说明.md")) {
+                                print "更新 ${params.VERSION} 到 发布说明中文版"
+                                releasenots = sh(script: "cat 阿里巴巴Dragonwell${params.RELEASE}发布说明.md", returnStdout: true).trim()
+                                writeFile file: "阿里巴巴Dragonwell${params.RELEASE}发布说明.md", text: newReleasenotes
+                                sh "git add 阿里巴巴Dragonwell${params.RELEASE}发布说明.md"
+                                sh "git commit -m \" update 阿里巴巴Dragonwell${params.RELEASE}发布说明.md \""
+                                sh "git push origin HEAD:master"
+                            } else {
+                                print "did not find 阿里巴巴Dragonwell${params.RELEASE}发布说明.md"
+                            }
+                        }
+
+                        print "更新docker镜像"
+
+                        def dockerimages
+                        if (params.RELEASE == "8") {
+                            dockerimages = sh(script: "cat Use-Dragonwell${slash}${params.RELEASE}-docker-image.md", returnStdout: true).trim()
+                        } else {
+                            dockerimages = sh(script: "cat Use-Dragonwell${slash}${params.RELEASE}-docker-images.md", returnStdout: true).trim()
+                        }
+
+                        if (!dockerimages.contains("${tagName4Docker}")) {
+                            print "更新 ${tagName4Docker} 到 Use-Dragonwell${slash}${params.RELEASE}-docker-images.md"
+                            ArrayList l = new ArrayList(Arrays.asList(dockerimages.split("\n")))
+                            for (int i = 0; i < l.size(); i++) {
+                                if (l.get(i).contains("---")) {
+                                    l.add(i + 1, DOCKER_IMAGES_TEMPLATE1.replace("VERSION", tagName4Docker));
+                                    l.add(i + 1, DOCKER_IMAGES_TEMPLATE2.replace("VERSION", tagName4Docker));
+                                    l.add(i + 1, DOCKER_IMAGES_TEMPLATE3.replace("VERSION", tagName4Docker));
+                                    l.add(i + 1, DOCKER_IMAGES_TEMPLATE4.replace("VERSION", tagName4Docker));
+                                    if (params.RELEASE != "8") {
+                                        l.add(i + 1, DOCKER_IMAGES_TEMPLATE5.replace("VERSION", tagName4Docker));
+                                    }
+                                    break;
+                                }
+                            }
+                            writeFile file: "Use-Dragonwell${slash}${params.RELEASE}-docker-images.md", text: l.join("\n")
+                            sh "git add Use-Dragonwell${slash}${params.RELEASE}-docker-images.md"
+                            sh "git commit -m \" update Use-Dragonwell${slash}${params.RELEASE}-docker-images.md \""
+                            sh "git push origin HEAD:master"
+                        }
+                        print "更新OSS下载链接"
+                        def fineName
+                        if (params.RELEASE == "8") {
+                            fineName = "\'下载镜像(Mirrors-for-download).md\'"
+                        } else {
+                            fineName = "\'Mirrors-for-download-(下载镜像).md\'"
+                        }
+
+                        def osslinks = sh(script: "cat $fineName", returnStdout: true).trim()
+                        print "oss links ${osslinks}"
+                        if (!osslinks.contains("${params.VERSION}")) {
+                            print "更新 ${params.VERSION} 到下载镜像"
+                            if (params.RELEASE == "8") {
+                                writeFile file: '下载镜像(Mirrors-for-download).md', text: (MIRROS_DOWNLOAD_TEMPLATE + osslinks)
+                                sh "git add '下载镜像(Mirrors-for-download).md'"
+                            } else {
+                                writeFile file: 'Mirrors-for-download-(下载镜像).md', text: (MIRROS_DOWNLOAD_TEMPLATE + osslinks)
+                                sh "git add 'Mirrors-for-download-(下载镜像).md'"
+                            }
+                            sh "git commit -m \" update Mirrors for download\""
+                            sh "git push origin HEAD:master"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

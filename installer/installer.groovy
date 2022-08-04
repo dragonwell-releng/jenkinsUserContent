@@ -1,14 +1,76 @@
 import groovy.json.*
 
-properties[
-        [$class: 'JiraProjectProperty'],
-        [$class: 'RebuildSettings', autoRebuild: false, rebuildDisabled: false],
-]
+properties([
+  parameters([
+    choice(
+      choices: [
+        "17",
+        "11",
+        "8"
+      ].join("\n"),
+      description: 'Use which Multiplexing',
+      name: 'RELEASE'
+    ),
+    string(
+      description: 'Release type, such as extended, standard',
+      name: 'TYPE'
+    ),
+    string(
+      description: 'Pipeline build Number',
+      name: 'VERSION'
+    ),
+    string(
+      description: 'Github version',
+      name: 'GITHUBVERSION'
+    ),
+    string(
+      description: 'Github tag',
+      name: 'GITHUBTAG'
+    ),
+    string(
+      description: 'Build number',
+      name: 'BUILDNUMBER'
+    ),
+    booleanParam(
+      defaultValue: true,
+      description: 'copy release oss',
+      name: 'OSS'
+    ),
+    booleanParam(
+      defaultValue: true,
+      description: 'release on github',
+      name: 'GITHUB'
+    ),
+    booleanParam(
+      defaultValue: true,
+      description: 'release on docker',
+      name: 'DOCKER'
+    ),
+    booleanParam(
+      defaultValue: true,
+      description: 'clean workspace',
+      name: 'CLEAN'
+    ),
+    booleanParam(
+      defaultValue: true,
+      description: 'generate wiki content',
+      name: 'GENERATE_WIKI'
+    ),
+    booleanParam(
+      defaultValue: false,
+      description: 'update wiki',
+      name: 'UPDATE_WIKI'
+    )
+  ])
+])
+
 OSS_TOOL = "/home/testuser/ossutil64"
-TOKEN = "ghp_KI10VDceecSlImTXHnhK0cWm7prLUc0oFsU" + "S"
+TOKEN = "ghp_X7IHDUgMLjz8vOjXIURFPHT0vW8IyW2V7yA" + "D"
 RELEASE_MAP = [:]
 CHECKSUM_MAP = [:]
 
+def typePrefix = params.TYPE ? params.TYPE.capitalize() : "Extended"
+def targetBranch = params.TYPE.toLowerCase() == "standard" ? "standard" : "master"
 def slash = "-"
 if (params.RELEASE == "8")
     slash = ""
@@ -97,212 +159,144 @@ def updateReleaseNotes() {
 
 }
 
-pipeline {
-    options {
-        durabilityHint('PERFORMANCE_OPTIMIZED')
-        buildDiscarder(logRotator(numToKeepStr: '15', artifactDaysToKeepStr: '15'))
-    }
-    agent {
-        label 'master'
-    }
-    parameters {
-        choice(name: 'RELEASE', choices: '17\n11\n8\n',
-                description: 'Use which Multiplexing')
-        string(name: 'VERSION',
-                defaultValue: "11.0.10.5",
-                description: 'Pipeline build Number')
-        string(name: 'GITHUBVERSION',
-                defaultValue: "11.0.10.5-GA",
-                description: 'Github version')
-        string(name: 'GITHUBTAG',
-                defaultValue: "dragonwell-11.0.10.5_jdk-11.0.10+0",
-                description: 'Github tag')
-        string(name: 'BUILDNUMBER',
-                defaultValue: "latest",
-                description: 'Build number')
-        booleanParam(defaultValue: true,
-                description: 'copy release oss',
-                name: 'OSS')
-        booleanParam(defaultValue: true,
-                description: 'release on github',
-                name: 'GITHUB')
-        booleanParam(defaultValue: true,
-                description: 'release on docker',
-                name: 'DOCKER')
-        booleanParam(defaultValue: true,
-                description: 'clean workspace',
-                name: 'CLEAN')
-        booleanParam(defaultValue: true,
-                description: 'update wiki',
-                name: 'WIKI')
-    }
-    environment {
-        HSF_HOME = "/home/admin/hsf/benchmark"
-    }
-    stages {
-        stage('publishOssGithub') {
-            when {
-                // Only say hello if a "greeting" is requested
-                expression { params.OSS == true }
+stage('publishOssGithub') {
+  if (params.OSS || params.DOCKER || params.GITHUB) {
+    node("ossworker") {
+      if (params.CLEAN) {
+        sh "rm -rf /home/testuser/jenkins/workspace/dragonwell-oss-installer/workspace/target/"
+        copyArtifacts(
+                projectName: "build-scripts/openjdk${params.RELEASE}-pipeline",
+                filter: "**/${HEAD}*dragonwell*tar.gz*",
+                selector: specific("${params.BUILDNUMBER}"),
+                fingerprintArtifacts: true,
+                target: "workspace/target/",
+                flatten: true)
+        copyArtifacts(
+                projectName: "build-scripts/openjdk${params.RELEASE}-pipeline",
+                filter: "**/${HEAD}*dragonwell*zip*",
+                selector: specific("${params.BUILDNUMBER}"),
+                fingerprintArtifacts: true,
+                target: "workspace/target/",
+                flatten: true)
+      }
+      dir("workspace/target/") {
+        files = sh(script: 'ls', returnStdout: true).split()
+        for (String platform : PLATFORMS) {
+          def tailPattern = (platform != "x64_windows") ? "tar.gz" : "zip"
+          def tarPattern = ".+${platform}.+${tailPattern}"
+          def checkPattern = ".+${platform}.+sha256.txt"
+          for (String file : files) {
+            final p = file =~ /${tarPattern}/
+            final checksum = file =~ /${checkPattern}/
+            if (p.matches()) {
+              def releaseFile = "Alibaba_Dragonwell_${typePrefix}_${params.VERSION}_${platform}.${tailPattern}"
+              sh "mv ${file} ${releaseFile}"
+              if (params.OSS)
+                sh "${OSS_TOOL} cp -f ${releaseFile} oss://dragonwell/${params.VERSION}/${releaseFile}"
+              print "https://dragonwell.oss-cn-shanghai.aliyuncs.com/${params.VERSION}/${releaseFile}"
+              RELEASE_MAP["${releaseFile}"] = "https://dragonwell.oss-cn-shanghai.aliyuncs.com/${params.VERSION}/${releaseFile}"
+              DOCKER_IMAGE_MAP["${platform}"] = "https://dragonwell.oss-cn-shanghai.aliyuncs.com/${params.VERSION}/${releaseFile}"
+            } else if (checksum.matches()) {
+              def releaseFile = "Alibaba_Dragonwell_${typePrefix}_${params.VERSION}_${platform}.${tailPattern}.sha256.txt"
+              sh "mv ${file} ${releaseFile}"
+              if (params.OSS)
+                sh "${OSS_TOOL} cp -f ${releaseFile} oss://dragonwell/${params.VERSION}/${releaseFile}"
+              print "https://dragonwell.oss-cn-shanghai.aliyuncs.com/${params.VERSION}/${releaseFile}"
+              CHECKSUM_MAP["${releaseFile}"] = "https://dragonwell.oss-cn-shanghai.aliyuncs.com/${params.VERSION}/${releaseFile}"
             }
-            agent {
-                label 'ossworker'
-            }
-            steps {
-                script {
-                    if (params.CLEAN) {
-                        sh "rm -rf /home/testuser/jenkins/workspace/dragonwell-oss-installer/workspace/target/"
-                        copyArtifacts(
-                                projectName: "build-scripts/openjdk${params.RELEASE}-pipeline",
-                                filter: "**/${HEAD}*dragonwell*tar.gz*",
-                                selector: specific("${params.BUILDNUMBER}"),
-                                fingerprintArtifacts: true,
-                                target: "workspace/target/",
-                                flatten: true)
-                        copyArtifacts(
-                                projectName: "build-scripts/openjdk${params.RELEASE}-pipeline",
-                                filter: "**/${HEAD}*dragonwell*zip*",
-                                selector: specific("${params.BUILDNUMBER}"),
-                                fingerprintArtifacts: true,
-                                target: "workspace/target/",
-                                flatten: true)
-                    }
-                    dir("workspace/target/") {
-                        files = sh(script: 'ls', returnStdout: true).split()
-                        for (String platform : PLATFORMS) {
-                            def tailPattern = (platform != "x64_windows") ? "tar.gz" : "zip"
-                            def tarPattern = ".+${platform}.+${tailPattern}"
-                            def checkPattern = ".+${platform}.+sha256.txt"
-                            for (String file : files) {
-                                final p = file =~ /${tarPattern}/
-                                final checksum = file =~ /${checkPattern}/
-                                if (p.matches()) {
-                                    def releaseFile = "Alibaba_Dragonwell_${params.VERSION}_${platform}.${tailPattern}"
-                                    sh "mv ${file} ${releaseFile}"
-                                    sh "${OSS_TOOL} cp -f ${releaseFile} oss://dragonwell/${params.VERSION}/${releaseFile}"
-                                    print "https://dragonwell.oss-cn-shanghai.aliyuncs.com/${params.VERSION}/${releaseFile}"
-                                    RELEASE_MAP["${releaseFile}"] = "https://dragonwell.oss-cn-shanghai.aliyuncs.com/${params.VERSION}/${releaseFile}"
-                                    DOCKER_IMAGE_MAP["${platform}"] = "https://dragonwell.oss-cn-shanghai.aliyuncs.com/${params.VERSION}/${releaseFile}"
-                                } else if (checksum.matches()) {
-                                    def releaseFile = "Alibaba_Dragonwell_${params.VERSION}_${platform}.${tailPattern}.sha256.txt"
-                                    sh "mv ${file} ${releaseFile}"
-                                    sh "${OSS_TOOL} cp -f ${releaseFile} oss://dragonwell/${params.VERSION}/${releaseFile}"
-                                    print "https://dragonwell.oss-cn-shanghai.aliyuncs.com/${params.VERSION}/${releaseFile}"
-                                    CHECKSUM_MAP["${releaseFile}"] = "https://dragonwell.oss-cn-shanghai.aliyuncs.com/${params.VERSION}/${releaseFile}"
-                                }
-                            }
-                        }
-                        if (params.GITHUB) {
-                            def releaseJson = new JsonBuilder([
-                                    "tag_name"        : "${params.GITHUBTAG}",
-                                    "target_commitish": "master",
-                                    "name"            : "Alibaba_Dragonwell_${params.VERSION}",
-                                    "body"            : "",
-                                    "draft"           : false,
-                                    "prerelease"      : true
-                            ])
-                            writeFile file: 'release.json', text: releaseJson.toPrettyString()
-                            def release = sh(script: "curl -XPOST -H \"Authorization:token ${TOKEN}\" --data @release.json https://api.github.com/repos/alibaba/${REPO}/releases", returnStdout: true)
-                            writeFile file: 'result.json', text: "${release}"
-                            def id = sh(script: "cat result.json | grep id | head -n 1 | awk -F\"[:,]\"  '{ print \$2 }' | awk '{print \$1}'", returnStdout: true)
-                            id = id.trim()
-                            for (file in RELEASE_MAP) {
-                                def assetName = file.key
-                                def urlAssetName = assetName.replace("+", "%2B")
-                                sh "curl -Ss -XPOST -H \"Authorization:token ${TOKEN}\" -H \"Content-Type:application/zip\" --data-binary @${assetName} https://uploads.github.com/repos/alibaba/${REPO}/releases/${id}/assets?name=${urlAssetName}"
-                            }
-                            for (file in CHECKSUM_MAP) {
-                                def assetName = file.key
-                                def urlAssetName = assetName.replace("+", "%2B")
-                                sh "curl -Ss -XPOST -H \"Authorization:token ${TOKEN}\" -H \"Content-Type:text/plain\" --data-binary @${assetName} https://uploads.github.com/repos/alibaba/${REPO}/releases/${id}/assets?name=${urlAssetName}"
-                            }
-                        }
-                    }
-                }
-            }
+          }
+        } 
+        if (params.GITHUB) {
+          def versionSuffix = params.RELEASE == "11" ? params.VERSION.substring(0, params.VERSION.lastIndexOf(".")) : params.VERSION
+          def releaseJson = new JsonBuilder([
+                   "tag_name"        : "${params.GITHUBTAG}",
+                   "target_commitish": "${targetBranch}",
+                   "name"            : "Alibaba_Dragonwell_${typePrefix}_${versionSuffix}",
+                   "body"            : "",
+                   "draft"           : false,
+                   "prerelease"      : true
+          ])
+          writeFile file: 'release.json', text: releaseJson.toPrettyString()
+          def release = sh(script: "curl -XPOST -H \"Authorization:token ${TOKEN}\" --data @release.json https://api.github.com/repos/alibaba/${REPO}/releases", returnStdout: true)
+          writeFile file: 'result.json', text: "${release}"
+          def id = sh(script: "cat result.json | grep id | head -n 1 | awk -F\"[:,]\"  '{ print \$2 }' | awk '{print \$1}'", returnStdout: true)
+          id = id.trim()
+          for (file in RELEASE_MAP) {
+            def assetName = file.key
+            def urlAssetName = assetName.replace("+", "%2B")
+            sh "curl -Ss -XPOST -H \"Authorization:token ${TOKEN}\" -H \"Content-Type:application/zip\" --data-binary @${assetName} https://uploads.github.com/repos/alibaba/${REPO}/releases/${id}/assets?name=${urlAssetName}"
+          }
+          for (file in CHECKSUM_MAP) {
+            def assetName = file.key
+            def urlAssetName = assetName.replace("+", "%2B")
+            sh "curl -Ss -XPOST -H \"Authorization:token ${TOKEN}\" -H \"Content-Type:text/plain\" --data-binary @${assetName} https://uploads.github.com/repos/alibaba/${REPO}/releases/${id}/assets?name=${urlAssetName}"
+          }
         }
-        stage('publishDocker-x64') {
-            when {
-                // Only say hello if a "greeting" is requested
-                expression { params.DOCKER == true }
+      }
+    }
+  }
+}
+stage('publishDocker-x64') {
+    if (params.DOCKER) {
+      node("docker:x64") {
+            sh "docker login"
+            def url = DOCKER_IMAGE_MAP["x64_linux"]
+            def urlAlpine = DOCKER_IMAGE_MAP["x64_alpine-linux"]
+            if (params.RELEASE == "17") {
+                url = url.replace("+", "%2B")
+                urlAlpine = urlAlpine.replace("+", "%2B")
             }
-            agent {
-                label 'docker:x64'
-            }
-            steps {
-                script {
-                    sh "docker login"
-                    def url = DOCKER_IMAGE_MAP["x64_linux"]
-                    def urlAlpine = DOCKER_IMAGE_MAP["x64_alpine-linux"]
-                    if (params.RELEASE == "17") {
-                        url = url.replace("+", "%2B")
-                        urlAlpine = urlAlpine.replace("+", "%2B")
-                    }
-                    sh "wget ${BUILDER} -O build.sh"
-                    sh "sh build.sh ${url} ${tagName4Docker} ${urlAlpine}"
-                }
-            }
+            sh "wget ${BUILDER} -O build.sh"
+            sh "sh build.sh ${url} ${tagName4Docker} ${urlAlpine}"
         }
-        stage('publishDocker-aarch64') {
-            when {
-                // Only say hello if a "greeting" is requested
-                expression { params.DOCKER == true }
+    }
+}
+stage('publishDocker-aarch64') {
+    if (params.DOCKER) {
+        node("docker:aarch64") {
+            sh "docker login"
+            def url = DOCKER_IMAGE_MAP["aarch64_linux"]
+            if (params.RELEASE == "17") {
+                url = url.replace("+", "%2B")
             }
-            agent {
-                label 'docker:aarch64'
-            }
-            steps {
-                script {
-                    sh "docker login"
-                    def url = DOCKER_IMAGE_MAP["aarch64_linux"]
-                    if (params.RELEASE == "17") {
-                        url = url.replace("+", "%2B")
-                    }
-                    def urlAlpine = ""
-                    sh "wget ${BUILDER} -O build.sh"
-                    sh "sh build.sh ${url} ${tagName4Docker} ${urlAlpine}"
-                }
-            }
+            def urlAlpine = ""
+            sh "wget ${BUILDER} -O build.sh"
+            sh "sh build.sh ${url} ${tagName4Docker} ${urlAlpine}"
         }
+    }
+}
 
-        stage('wiki-update') {
-            when {
-                // Only say hello if a "greeting" is requested
-                expression { params.WIKI == true }
+stage('wiki-update') {
+    if (params.GENERATE_WIKI || params.UPDATE_WIKI) {
+        node("ossworker") {
+            sh "rm -rf workspace/target/ || true"
+            dir("/repo/dragonwell${params.RELEASE}") {
+                sh "git fetch origin"
+                sh "git reset --hard origin/master"
             }
-            agent {
-                label 'ossworker'
-            }
-            steps {
-                script {
-                    sh "rm -rf workspace/target/ || true"
-                    dir("/repo/dragonwell${params.RELEASE}") {
-                        sh "git fetch origin"
-                        sh "git reset --hard origin/master"
+            dir("/root/wiki/dragonwell${params.RELEASE}.wiki") {
+                print "更新ReleaseNotes"
+                sh "git fetch origin && git reset --hard origin/master"
+                sh(script: "docker run  registry.cn-hangzhou.aliyuncs.com/dragonwell/dragonwell:${tagName4Docker}_x86_64_slim java -version 2> tmpt")
+                def fullVersionOutput = sh(script: "cat tmpt", returnStdout: true).trim()
+                print "fullversion is ${fullVersionOutput}"
+                def releasenots = sh(script: "cat Alibaba-Dragonwell${slash}${params.RELEASE}-Release-Notes.md", returnStdout: true).trim()
+                if (!releasenots.contains("${params.VERSION}")) {
+                    print "更新 ${params.VERSION} 到 Alibaba-Dragonwell${slash}${params.RELEASE}-Release-Notes.md"
+                    URL apiUrl = new URL("https://api.github.com/repos/alibaba/dragonwell${params.RELEASE}/releases")
+                    def card = new JsonSlurper().parse(apiUrl)
+                    def fromTag = ""
+                    if (card.size() > 1) {
+                        def lastRelease = card[1].get("tag_name")
+                        fromTag = "--fromtag ${lastRelease}"
+                        def curRelease = card[0].get("tag_name")
+                        toTag = "--totag ${curRelease}"
                     }
-                    dir("/root/wiki/dragonwell${params.RELEASE}.wiki") {
-                        print "更新ReleaseNotes"
-                        sh "git fetch origin && git reset --hard origin/master"
-                        sh(script: "docker run  registry.cn-hangzhou.aliyuncs.com/dragonwell/dragonwell:${tagName4Docker}_x86_64_slim java -version 2> tmpt")
-                        def fullVersionOutput = sh(script: "cat tmpt", returnStdout: true).trim()
-                        print "fullversion is ${fullVersionOutput}"
-                        def releasenots = sh(script: "cat Alibaba-Dragonwell${slash}${params.RELEASE}-Release-Notes.md", returnStdout: true).trim()
-                        if (!releasenots.contains("${params.VERSION}")) {
-                            print "更新 ${params.VERSION} 到 Alibaba-Dragonwell${slash}${params.RELEASE}-Release-Notes.md"
-                            URL apiUrl = new URL("https://api.github.com/repos/alibaba/dragonwell${params.RELEASE}/releases")
-                            def card = new JsonSlurper().parse(apiUrl)
-                            def fromTag = ""
-                            if (card.size() > 1) {
-                                def lastRelease = card[1].get("tag_name")
-                                fromTag = "--fromtag ${lastRelease}"
-                                def curRelease = card[0].get("tag_name")
-                                toTag = "--totag ${curRelease}"
-                            }
-                            sh "wget http://ci.dragonwell-jdk.io/userContent/utils/driller.py -O driller.py"
-                            def gitLogReport = sh(script: "python3 driller.py --repo /repo/dragonwell${params.RELEASE} ${fromTag} ${toTag} --release ${params.RELEASE}", returnStdout: true)
-                            def newReleasenotes = ""
-                            if (params.RELEASE == "8") {
-                              newReleasenotes = """
+                    sh "wget http://ci.dragonwell-jdk.io/userContent/utils/driller.py -O driller.py"
+                    def gitLogReport = sh(script: "python3 driller.py --repo /repo/dragonwell${params.RELEASE} ${fromTag} ${toTag} --release ${params.RELEASE}", returnStdout: true)
+                    def newReleasenotes = ""
+                    if (params.RELEASE == "8") {
+                      newReleasenotes = """
 # Alibaba Dragonwell ${params.VERSION}-GA
  ```
 ${fullVersionOutput}
@@ -329,19 +323,22 @@ ${fullVersionOutput}
 ${gitLogReport}
 """ + releasenots
                             }
-                            writeFile file: "Alibaba-Dragonwell${slash}${params.RELEASE}-Release-Notes.md", text: newReleasenotes
-                            sh "git add Alibaba-Dragonwell${slash}${params.RELEASE}-Release-Notes.md"
-                            sh "git commit -m \" update Alibaba-Dragonwell${slash}${params.RELEASE}-Release-Notes.md \""
-                            sh "git push origin HEAD:master"
-                            if (fileExists("阿里巴巴Dragonwell${params.RELEASE}发布说明.md")) {
-                                print "更新 ${params.VERSION} 到 发布说明中文版"
-                                releasenots = sh(script: "cat 阿里巴巴Dragonwell${params.RELEASE}发布说明.md", returnStdout: true).trim()
-                                writeFile file: "阿里巴巴Dragonwell${params.RELEASE}发布说明.md", text: newReleasenotes
-                                sh "git add 阿里巴巴Dragonwell${params.RELEASE}发布说明.md"
-                                sh "git commit -m \" update 阿里巴巴Dragonwell${params.RELEASE}发布说明.md \""
-                                sh "git push origin HEAD:master"
-                            } else {
-                                print "did not find 阿里巴巴Dragonwell${params.RELEASE}发布说明.md"
+                            println newReleasenotes
+                            if (params.UPDATE_WIKI) {
+                              writeFile file: "Alibaba-Dragonwell${slash}${params.RELEASE}-Release-Notes.md", text: newReleasenotes
+                              sh "git add Alibaba-Dragonwell${slash}${params.RELEASE}-Release-Notes.md"
+                              sh "git commit -m \" update Alibaba-Dragonwell${slash}${params.RELEASE}-Release-Notes.md \""
+                              sh "git push origin HEAD:master"
+                              if (fileExists("阿里巴巴Dragonwell${params.RELEASE}发布说明.md")) {
+                                  print "更新 ${params.VERSION} 到 发布说明中文版"
+                                  releasenots = sh(script: "cat 阿里巴巴Dragonwell${params.RELEASE}发布说明.md", returnStdout: true).trim()
+                                  writeFile file: "阿里巴巴Dragonwell${params.RELEASE}发布说明.md", text: newReleasenotes
+                                  sh "git add 阿里巴巴Dragonwell${params.RELEASE}发布说明.md"
+                                  sh "git commit -m \" update 阿里巴巴Dragonwell${params.RELEASE}发布说明.md \""
+                                  sh "git push origin HEAD:master"
+                              } else {
+                                  print "did not find 阿里巴巴Dragonwell${params.RELEASE}发布说明.md"
+                              }
                             }
                         }
 
@@ -369,10 +366,13 @@ ${gitLogReport}
                                     break;
                                 }
                             }
-                            writeFile file: "Use-Dragonwell${slash}${params.RELEASE}-docker-images.md", text: l.join("\n")
-                            sh "git add Use-Dragonwell${slash}${params.RELEASE}-docker-images.md"
-                            sh "git commit -m \" update Use-Dragonwell${slash}${params.RELEASE}-docker-images.md \""
-                            sh "git push origin HEAD:master"
+                            println l.join("\n")
+                            if (params.UPDATE_WIKI) {
+                              writeFile file: "Use-Dragonwell${slash}${params.RELEASE}-docker-images.md", text: l.join("\n")
+                              sh "git add Use-Dragonwell${slash}${params.RELEASE}-docker-images.md"
+                              sh "git commit -m \" update Use-Dragonwell${slash}${params.RELEASE}-docker-images.md \""
+                              sh "git push origin HEAD:master"
+                            }
                         }
                         print "更新OSS下载链接"
                         def fineName
@@ -383,8 +383,9 @@ ${gitLogReport}
                         }
 
                         def osslinks = sh(script: "cat $fineName", returnStdout: true).trim()
-                        print "oss links ${osslinks}"
-                        if (!osslinks.contains("${params.VERSION}")) {
+                        //print "oss links ${osslinks}"
+                        println MIRROS_DOWNLOAD_TEMPLATE + osslinks
+                        if (!osslinks.contains("${params.VERSION}") && params.UPDATE_WIKI) {
                             print "更新 ${params.VERSION} 到下载镜像"
                             if (params.RELEASE == "8") {
                                 writeFile file: '下载镜像(Mirrors-for-download).md', text: (MIRROS_DOWNLOAD_TEMPLATE + osslinks)
@@ -399,6 +400,4 @@ ${gitLogReport}
                     }
                 }
             }
-        }
-    }
 }
