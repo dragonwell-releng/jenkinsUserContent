@@ -73,7 +73,8 @@ if __name__ == "__main__":
     for path in paths:
         repo_dir = os.path.join(args.repo, path)
         repo = git.Repo(repo_dir)
-        revstr = "{}...master".format(args.fromtag)
+        totag = "master" if not args.totag else args.totag
+        revstr = "{}...{}".format(args.fromtag, totag)
         for commit in repo.iter_commits(rev=revstr):
             summary=""
             issue_link=""

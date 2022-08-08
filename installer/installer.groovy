@@ -91,40 +91,40 @@ DOCKER_IMAGES_TEMPLATE5 = "| registry.cn-hangzhou.aliyuncs.com/dragonwell/dragon
 
 if (params.RELEASE == "8") {
     MIRROS_DOWNLOAD_TEMPLATE = """
-# ${params.VERSION}
+# ${params.VERSION}-${typePrefix}
 
 | File name | China mainland | United States |
 |---|---|---|
-| Alibaba_Dragonwell_jdk-${params.VERSION}_aarch64_linux.tar.gz | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${versionName4OSS}_aarch64_linux.tar.gz) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${versionName4OSS}_aarch64_linux.tar.gz) |
-| Alibaba_Dragonwell_jdk-${params.VERSION}_x64_alpine-linux.tar.gz | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${versionName4OSS}_x64_alpine-linux.tar.gz) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/releases/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${versionName4OSS}_x64_alpine-linux.tar.gz) |
-| Alibaba_Dragonwell_jdk-${params.VERSION}_x64-linux.tar.gz | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${versionName4OSS}_x64_linux.tar.gz) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/releases/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${versionName4OSS}_x64_linux.tar.gz) |
-| Alibaba_Dragonwell_jdk-${params.VERSION}_x86_windows.zip | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${versionName4OSS}_x86_windows.zip) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/releases/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${versionName4OSS}_x86_windows.zip) |
+| Alibaba_Dragonwell_${typePrefix}_jdk-${params.VERSION}_aarch64_linux.tar.gz | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${typePrefix}_${versionName4OSS}_aarch64_linux.tar.gz) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${typePrefix}_${versionName4OSS}_aarch64_linux.tar.gz) |
+| Alibaba_Dragonwell_${typePrefix}_jdk-${params.VERSION}_x64_alpine-linux.tar.gz | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${typePrefix}_${versionName4OSS}_x64_alpine-linux.tar.gz) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/releases/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${typePrefix}_${versionName4OSS}_x64_alpine-linux.tar.gz) |
+| Alibaba_Dragonwell_${typePrefix}_jdk-${params.VERSION}_x64-linux.tar.gz | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${typePrefix}_${versionName4OSS}_x64_linux.tar.gz) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/releases/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${typePrefix}_${versionName4OSS}_x64_linux.tar.gz) |
+| Alibaba_Dragonwell_${typePrefix}_jdk-${params.VERSION}_x86_windows.zip | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${typePrefix}_${versionName4OSS}_x86_windows.zip) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/releases/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${typePrefix}_${versionName4OSS}_x86_windows.zip) |
 """
 } else if (params.RELEASE == "11") {
     def newTitle = params.VERSION.substring(0, params.VERSION.lastIndexOf("."))
     if (params.GITHUBVERSION.contains("-GA")) {
-      newTitle = "${newTitle}-GA"
+      newTitle = "${newTitle}-${typePrefix}-GA"
     }
     MIRROS_DOWNLOAD_TEMPLATE = """
 # ${newTitle}
 
 | File name | China mainland | United States |
 |---|---|---|
-| Alibaba_Dragonwell_jdk-${params.VERSION}_aarch64_linux.tar.gz | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${versionName4OSS}_aarch64_linux.tar.gz) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${versionName4OSS}_aarch64_linux.tar.gz) |
-| Alibaba_Dragonwell_jdk-${params.VERSION}_x64_alpine-linux.tar.gz | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${versionName4OSS}_x64_alpine-linux.tar.gz) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/releases/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${versionName4OSS}_x64_alpine-linux.tar.gz) |
-| Alibaba_Dragonwell_jdk-${params.VERSION}_x64-linux.tar.gz | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${versionName4OSS}_x64_linux.tar.gz) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/releases/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${versionName4OSS}_x64_linux.tar.gz) |
-| Alibaba_Dragonwell_jdk-${params.VERSION}_x64_windows.zip | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${versionName4OSS}_x64_windows.zip) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/releases/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${versionName4OSS}_x64_windows.zip) |
+| Alibaba_Dragonwell_${typePrefix}_jdk-${params.VERSION}_aarch64_linux.tar.gz | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${typePrefix}_${versionName4OSS}_aarch64_linux.tar.gz) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${typePrefix}_${versionName4OSS}_aarch64_linux.tar.gz) |
+| Alibaba_Dragonwell_${typePrefix}_jdk-${params.VERSION}_x64_alpine-linux.tar.gz | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${typePrefix}_${versionName4OSS}_x64_alpine-linux.tar.gz) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/releases/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${typePrefix}_${versionName4OSS}_x64_alpine-linux.tar.gz) |
+| Alibaba_Dragonwell_${typePrefix}_jdk-${params.VERSION}_x64-linux.tar.gz | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${typePrefix}_${versionName4OSS}_x64_linux.tar.gz) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/releases/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${typePrefix}_${versionName4OSS}_x64_linux.tar.gz) |
+| Alibaba_Dragonwell_${typePrefix}_jdk-${params.VERSION}_x64_windows.zip | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${typePrefix}_${versionName4OSS}_x64_windows.zip) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/releases/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${typePrefix}_${versionName4OSS}_x64_windows.zip) |
 """
 } else {
     MIRROS_DOWNLOAD_TEMPLATE = """
-# ${params.GITHUBVERSION}
+# ${params.GITHUBVERSION}-${typePrefix}
 
 | File name | China mainland | United States |
 |---|---|---|
-| Alibaba_Dragonwell_jdk-${params.VERSION}_aarch64_linux.tar.gz | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${versionName4OSS}_aarch64_linux.tar.gz) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${versionName4OSS}_aarch64_linux.tar.gz) |
-| Alibaba_Dragonwell_jdk-${params.VERSION}_x64_alpine-linux.tar.gz | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${versionName4OSS}_x64_alpine-linux.tar.gz) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/releases/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${versionName4OSS}_x64_alpine-linux.tar.gz) |
-| Alibaba_Dragonwell_jdk-${params.VERSION}_x64-linux.tar.gz | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${versionName4OSS}_x64_linux.tar.gz) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/releases/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${versionName4OSS}_x64_linux.tar.gz) |
-| Alibaba_Dragonwell_jdk-${params.VERSION}_x64_windows.zip | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${versionName4OSS}_x64_windows.zip) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/releases/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${versionName4OSS}_x64_windows.zip) |
+| Alibaba_Dragonwell_${typePrefix}_jdk-${params.VERSION}_aarch64_linux.tar.gz | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${typePrefix}_${versionName4OSS}_aarch64_linux.tar.gz) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${typePrefix}_${versionName4OSS}_aarch64_linux.tar.gz) |
+| Alibaba_Dragonwell_${typePrefix}_jdk-${params.VERSION}_x64_alpine-linux.tar.gz | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${typePrefix}_${versionName4OSS}_x64_alpine-linux.tar.gz) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/releases/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${typePrefix}_${versionName4OSS}_x64_alpine-linux.tar.gz) |
+| Alibaba_Dragonwell_${typePrefix}_jdk-${params.VERSION}_x64-linux.tar.gz | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${typePrefix}_${versionName4OSS}_x64_linux.tar.gz) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/releases/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${typePrefix}_${versionName4OSS}_x64_linux.tar.gz) |
+| Alibaba_Dragonwell_${typePrefix}_jdk-${params.VERSION}_x64_windows.zip | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${typePrefix}_${versionName4OSS}_x64_windows.zip) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/releases/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${typePrefix}_${versionName4OSS}_x64_windows.zip) |
 """
 }
 
@@ -280,19 +280,32 @@ stage('wiki-update') {
                 sh(script: "docker run  registry.cn-hangzhou.aliyuncs.com/dragonwell/dragonwell:${tagName4Docker}_x86_64_slim java -version 2> tmpt")
                 def fullVersionOutput = sh(script: "cat tmpt", returnStdout: true).trim()
                 print "fullversion is ${fullVersionOutput}"
-                def releasenots = sh(script: "cat Alibaba-Dragonwell${slash}${params.RELEASE}-Release-Notes.md", returnStdout: true).trim()
+                def releasenots = sh(script: "cat Alibaba-Dragonwell${slash}${params.RELEASE}-${typePrefix}-Release-Notes.md", returnStdout: true).trim()
                 if (!releasenots.contains("${params.VERSION}")) {
-                    print "更新 ${params.VERSION} 到 Alibaba-Dragonwell${slash}${params.RELEASE}-Release-Notes.md"
-                    URL apiUrl = new URL("https://api.github.com/repos/alibaba/dragonwell${params.RELEASE}/releases")
+                    print "更新 ${params.VERSION} 到 Alibaba-Dragonwell${slash}${params.RELEASE}-${typePrefix}-Release-Notes.md"
+                    URL apiUrl = new URL("https://api.github.com/repos/alibaba/dragonwell${params.RELEASE}/tags")
                     def card = new JsonSlurper().parse(apiUrl)
                     def fromTag = ""
+                    def toTag = ""
                     if (card.size() > 1) {
-                        def lastRelease = card[1].get("tag_name")
-                        fromTag = "--fromtag ${lastRelease}"
-                        def curRelease = card[0].get("tag_name")
-                        toTag = "--totag ${curRelease}"
+                        def end = card.size() - 1
+                        def lastRelease = ""
+                        def curRelease = ""
+                        for (i in 0..end) {
+                          if (card[i].get("name").contains(typePrefix.toLowerCase())) {
+                            if (curRelease == "")
+                              curRelease = card[i].get("name")
+                            else
+                              lastRelease = card[i].get("name")
+                          }
+                          if (curRelease && lastRelease) {
+                            fromTag = "--fromtag ${lastRelease}"
+                            toTag = "--totag ${curRelease}"
+                            break
+                          }
+                        }
                     }
-                    sh "wget http://ci.dragonwell-jdk.io/userContent/utils/driller.py -O driller.py"
+                    sh "wget https://raw.githubusercontent.com/dragonwell-releng/jenkinsUserContent/master/utils/driller.py -O driller.py"
                     def gitLogReport = sh(script: "python3 driller.py --repo /repo/dragonwell${params.RELEASE} ${fromTag} ${toTag} --release ${params.RELEASE}", returnStdout: true)
                     def newReleasenotes = ""
                     if (params.RELEASE == "8") {
@@ -325,19 +338,19 @@ ${gitLogReport}
                             }
                             println newReleasenotes
                             if (params.UPDATE_WIKI) {
-                              writeFile file: "Alibaba-Dragonwell${slash}${params.RELEASE}-Release-Notes.md", text: newReleasenotes
-                              sh "git add Alibaba-Dragonwell${slash}${params.RELEASE}-Release-Notes.md"
-                              sh "git commit -m \" update Alibaba-Dragonwell${slash}${params.RELEASE}-Release-Notes.md \""
+                              writeFile file: "Alibaba-Dragonwell${slash}${params.RELEASE}-${typePrefix}-Release-Notes.md", text: newReleasenotes
+                              sh "git add Alibaba-Dragonwell${slash}${params.RELEASE}-${typePrefix}-Release-Notes.md"
+                              sh "git commit -m \" update Alibaba-Dragonwell${slash}${params.RELEASE}-${typePrefix}-Release-Notes.md \""
                               sh "git push origin HEAD:master"
-                              if (fileExists("阿里巴巴Dragonwell${params.RELEASE}发布说明.md")) {
-                                  print "更新 ${params.VERSION} 到 发布说明中文版"
-                                  releasenots = sh(script: "cat 阿里巴巴Dragonwell${params.RELEASE}发布说明.md", returnStdout: true).trim()
-                                  writeFile file: "阿里巴巴Dragonwell${params.RELEASE}发布说明.md", text: newReleasenotes
-                                  sh "git add 阿里巴巴Dragonwell${params.RELEASE}发布说明.md"
-                                  sh "git commit -m \" update 阿里巴巴Dragonwell${params.RELEASE}发布说明.md \""
+                              if (fileExists("阿里巴巴Dragonwell${params.RELEASE}-${typePrefix}发布说明.md")) {
+                                  print "更新 ${params.VERSION}-${typePrefix} 到 发布说明中文版"
+                                  releasenots = sh(script: "cat 阿里巴巴Dragonwell${params.RELEASE}-${typePrefix}发布说明.md", returnStdout: true).trim()
+                                  writeFile file: "阿里巴巴Dragonwell${params.RELEASE}-${typePrefix}发布说明.md", text: newReleasenotes
+                                  sh "git add 阿里巴巴Dragonwell${params.RELEASE}-${typePrefix}发布说明.md"
+                                  sh "git commit -m \" update 阿里巴巴Dragonwell${params.RELEASE}-${typePrefix}发布说明.md \""
                                   sh "git push origin HEAD:master"
                               } else {
-                                  print "did not find 阿里巴巴Dragonwell${params.RELEASE}发布说明.md"
+                                  print "did not find 阿里巴巴Dragonwell${params.RELEASE}-${typePrefix}发布说明.md"
                               }
                             }
                         }
