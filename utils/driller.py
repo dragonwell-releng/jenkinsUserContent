@@ -67,9 +67,6 @@ if __name__ == "__main__":
     internal_patches=[]
     malformed_patches=[]
 
-    if ("dragonwell8" in args.repo):
-        paths.append("jdk")
-        paths.append("hotspot")
     for path in paths:
         repo_dir = os.path.join(args.repo, path)
         repo = git.Repo(repo_dir)
@@ -83,6 +80,7 @@ if __name__ == "__main__":
                 continue
             for line in commit.message.split("\n"):
                 if 'Issue' in line:
+                  if "issues" in line:
                     if 'https' in line:
                         issue_numeber = line.split("issues/")[-1].strip()
                         issue_url = line.split("Issue:")[-1].strip()
@@ -94,6 +92,10 @@ if __name__ == "__main__":
                         issue_numeber = line.split("#")[-1].strip()
                         issue_url = "https://github.com/alibaba/dragonwell" +args.release + "/issues/" + issue_numeber
                         issue_link = "[Issue #" + issue_numeber + "](" + issue_url  +")"
+                  elif "pull" in line:
+                    issue_numeber = line.split("/")[-1].strip()
+                    issue_url = ":".join(line.split(":")[1:]).strip()
+                    issue_link = "[Pull #" + issue_numeber + "](" + issue_url  +")"
             if "alibaba-inc" in issue_link:
                 internal_patches.append(commit.summary)
                 continue

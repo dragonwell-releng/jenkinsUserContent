@@ -98,7 +98,7 @@ if (params.RELEASE == "8") {
 | Alibaba_Dragonwell_${typePrefix}_jdk-${params.VERSION}_aarch64_linux.tar.gz | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${typePrefix}_${versionName4OSS}_aarch64_linux.tar.gz) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${typePrefix}_${versionName4OSS}_aarch64_linux.tar.gz) |
 | Alibaba_Dragonwell_${typePrefix}_jdk-${params.VERSION}_x64_alpine-linux.tar.gz | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${typePrefix}_${versionName4OSS}_x64_alpine-linux.tar.gz) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/releases/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${typePrefix}_${versionName4OSS}_x64_alpine-linux.tar.gz) |
 | Alibaba_Dragonwell_${typePrefix}_jdk-${params.VERSION}_x64-linux.tar.gz | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${typePrefix}_${versionName4OSS}_x64_linux.tar.gz) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/releases/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${typePrefix}_${versionName4OSS}_x64_linux.tar.gz) |
-| Alibaba_Dragonwell_${typePrefix}_jdk-${params.VERSION}_x86_windows.zip | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${typePrefix}_${versionName4OSS}_x86_windows.zip) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/releases/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${typePrefix}_${versionName4OSS}_x86_windows.zip) |
+| Alibaba_Dragonwell_${typePrefix}_jdk-${params.VERSION}_x64_windows.zip | [download](https://dragonwell.oss-cn-shanghai.aliyuncs.com/${versionName4OSS}/Alibaba_Dragonwell_${typePrefix}_${versionName4OSS}_x64_windows.zip) | [download](https://github.com/alibaba/dragonwell${params.RELEASE}/releases/download/${params.GITHUBVERSION}/Alibaba_Dragonwell_${typePrefix}_${versionName4OSS}_x64_windows.zip) |
 """
 } else if (params.RELEASE == "11") {
     def newTitle = params.VERSION.substring(0, params.VERSION.lastIndexOf("."))
@@ -148,7 +148,7 @@ if (params.RELEASE == "8") {
     JDK_NAME = ""
     PLATFORMS = ["x64_linux", "x64_windows", "x64_alpine-linux", "aarch64_linux"]
     REPO = "dragonwell17"
-    HEAD = "OpenJDK17-jdk"
+    HEAD = "OpenJDK17U-jdk"
     BUILDER = "http://ci.dragonwell-jdk.io/userContent/utils/build17.sh"
 }
 
@@ -217,10 +217,18 @@ stage('publishOssGithub') {
                    "prerelease"      : true
           ])
           writeFile file: 'release.json', text: releaseJson.toPrettyString()
-          def release = sh(script: "curl -XPOST -H \"Authorization:token ${TOKEN}\" --data @release.json https://api.github.com/repos/alibaba/${REPO}/releases", returnStdout: true)
-          writeFile file: 'result.json', text: "${release}"
-          def id = sh(script: "cat result.json | grep id | head -n 1 | awk -F\"[:,]\"  '{ print \$2 }' | awk '{print \$1}'", returnStdout: true)
-          id = id.trim()
+          def checkReleaseByTag = sh(script: "curl -H \"Authorization:token ${TOKEN}\" https://api.github.com/repos/alibaba/${REPO}/releases/tags/${params.GITHUBTAG}", returnStdout: true)
+          writeFile file: 'result.json', text: "${checkReleaseByTag}"
+          def id = 0
+          if (checkReleaseByTag.contains("id")) {
+            println "exist release Alibaba_Dragonwell_${typePrefix}_${versionSuffix} with tag ${params.GITHUBTAG}"
+            id = sh(script: "cat result.json | grep id | head -n 1 | awk -F\"[:,]\"  '{ print \$2 }' | awk '{print \$1}'", returnStdout: true).trim()
+          } else {
+            def release = sh(script: "curl -XPOST -H \"Authorization:token ${TOKEN}\" --data @release.json https://api.github.com/repos/alibaba/${REPO}/releases", returnStdout: true)
+            writeFile file: 'result.json', text: "${release}"
+            id = sh(script: "cat result.json | grep id | head -n 1 | awk -F\"[:,]\"  '{ print \$2 }' | awk '{print \$1}'", returnStdout: true).trim()
+          }
+          println "ID: $id"
           for (file in RELEASE_MAP) {
             def assetName = file.key
             def urlAssetName = assetName.replace("+", "%2B")
@@ -292,18 +300,29 @@ stage('wiki-update') {
                         def lastRelease = ""
                         def curRelease = ""
                         for (i in 0..end) {
+                          println card[i].get("name")
                           if (card[i].get("name").contains(typePrefix.toLowerCase())) {
+                            println "matched ${card[i].get("name")}"
                             if (curRelease == "")
                               curRelease = card[i].get("name")
                             else
                               lastRelease = card[i].get("name")
                           }
                           if (curRelease && lastRelease) {
-                            fromTag = "--fromtag ${lastRelease}"
-                            toTag = "--totag ${curRelease}"
                             break
                           }
                         }
+                        if (!lastRelease) {
+                          for (i in 0..end) {
+                            def releaseName = card[i].get("name")
+                            if (!(releaseName.contains("extended") || releaseName.contains("standard")) && releaseName.contains("dragonwell")) {
+                              lastRelease = card[i].get("name")
+                              break
+                            }
+                          }
+                        }
+                        fromTag = lastRelease ? "--fromtag ${lastRelease}" : ""
+                        toTag = curRelease ? "--totag ${curRelease}" : ""
                     }
                     sh "wget https://raw.githubusercontent.com/dragonwell-releng/jenkinsUserContent/master/utils/driller.py -O driller.py"
                     def gitLogReport = sh(script: "python3 driller.py --repo /repo/dragonwell${params.RELEASE} ${fromTag} ${toTag} --release ${params.RELEASE}", returnStdout: true)
@@ -398,7 +417,7 @@ ${gitLogReport}
                         def osslinks = sh(script: "cat $fineName", returnStdout: true).trim()
                         //print "oss links ${osslinks}"
                         println MIRROS_DOWNLOAD_TEMPLATE + osslinks
-                        if (!osslinks.contains("${params.VERSION}") && params.UPDATE_WIKI) {
+                        if (!osslinks.contains("${params.VERSION}-${typePrefix}") && params.UPDATE_WIKI) {
                             print "更新 ${params.VERSION} 到下载镜像"
                             if (params.RELEASE == "8") {
                                 writeFile file: '下载镜像(Mirrors-for-download).md', text: (MIRROS_DOWNLOAD_TEMPLATE + osslinks)
