@@ -93,6 +93,10 @@ def checkGithubLatestRelease(release) {
             return []
         }
     }
+    println """pkg_list ${pkg_list}
+txt_list ${txt_list}
+platforms ${platforms}
+"""
     if (pkg_list.size() != platforms.size() || txt_list.size() != platforms.size()) {
         error "missing publish package/text"
     } else {
@@ -213,7 +217,7 @@ pipeline {
                     openjdktag = openjdk_card[0].get("release_name")
                     def arr = []
                     githubtag = card[0].get("tag_name")
-                    publishtag = githubtag.split("-")[1].split("_jdk")[0]
+                    publishtag = githubtag.split("-")[2].split("_jdk")[0]
 
                     echo "publish tags ${publishtag}"
                     echo "openjdktag tags ${openjdktag}"
