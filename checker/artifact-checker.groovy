@@ -1,329 +1,172 @@
-import net.sf.json.groovy.JsonSlurper
 import groovy.json.*
 
-@groovy.transform.Field def pkgs = []
-@groovy.transform.Field def githubtag = ""
-@groovy.transform.Field def publishtag = ""
-@groovy.transform.Field def openjdktag = ""
-@groovy.transform.Field def platforms = []
-if ("${params.RELEASE}" == "17") {
+properties([
+  parameters([
+    choice(
+      choices: [
+        "17",
+        "11",
+        "8"
+      ].join("\n"),
+      description: 'Use which Multiplexing',
+      name: 'RELEASE'
+    ),
+    string(
+      description: 'Release type, such as extended, standard',
+      name: 'TYPE'
+    ),
+    booleanParam(
+      defaultValue: true,
+      description: 'use dragonwell release rule',
+      name: 'DRAGONWELL'
+    )
+  ])
+])
+
+platforms = []
+if (params.RELEASE == "17") {
     platforms = ["aarch64_linux", "x64_alpine-linux", "x64_linux", "x64_windows"]
-} else if ("${params.RELEASE}" == "11") {
+} else if (params.RELEASE == "11") {
     platforms = ["aarch64_linux", "x64_alpine-linux", "x64_linux", "x64_windows"]
 } else {
-    platforms = ["aarch64_linux", "x64_linux", "x64_windows"]
-}
-@groovy.transform.Field def pkg_list = []
-@groovy.transform.Field def txt_list = []
-@groovy.transform.Field def debug = false
-@groovy.transform.Field def results = [:]
-
-
-def addResult(test, result, msg) {
-    results["${test}"] = [
-            "result" : true,
-            "message": msg
-    ]
+    platforms = ["aarch64_linux", "x64_linux", "x64_windows"] //  default dragonwell8
 }
 
-def resultMsg(mode, input) {
-    def msg = ""
-    if (mode == "version") {
-        if (publishtag.split("\\+").size() > 2 && openjdktag.split("\\+").size() > 2 && publishtag.split("\\.") > 4) {
-            // mode 1: output msg is about publish tag
-            def build_num = publishtag.split("\\+")[1]
-            def arr = publishtag.split("\\.")
-            def ups_tag = openjdktag.split("jdk-")[1]
-            msg = """
-upstream tag: ${ups_tag}</br>
-current tag: ${publishtag}</br>
-feature-release counter:${arr[0]}  interim-release counter:${arr[1]}</br>
-update-release counter:${arr[2]}  emergency patch-release counter:${arr[3]}</br>
-build number:${build_num}
-"""
-        }
-    } else if (mode == "checksum") {
-        // mode 2: output message is about validate text
-        msg = """
-sha256 value: ${input[0]}</br>
-checksum result: ${input[1]}
-"""
+def typePrefix = params.TYPE ? params.TYPE.capitalize() : "Extended"
+
+def getNewVersion(version, openjdkVersion) {
+  def patchNum = ""
+  def pacthSep = ""
+  if (params.RELEASE == "17") {
+    patchNum = openjdkVersion.split("\\+")[-1]
+    pacthSep = "+"
+  }
+  if (params.RELEASE == "17") {
+    version = version.split("\\+")[0]
+  }
+  def versionArr = version.split("\\.")
+  def end = versionArr.size() - 1
+  def expectVersion = ""
+  def jdkVersionSuffix = "jdk-"
+  def num = 0
+  for (i in 0..end) {
+    if ((params.RELEASE == "8" && i != 0) || 
+        (params.RELEASE == "11" && (i == 2 || i == 3)) ||
+        (params.RELEASE == "17" && (i == 2 || i == 4))) {
+      num = versionArr[i].toInteger() + 1
+    } else {
+      num = versionArr[i].toInteger()
     }
-    return msg
+    def suffix = i == end ? "${num}" : "${num}."
+    expectVersion += suffix
+    if (params.RELEASE == "11" || params.RELEASE == "17") {
+      if (i < 2)
+        jdkVersionSuffix += "${num}."
+      else if (i == 2)
+        jdkVersionSuffix += "${num}"
+    }
+  }
+  if (params.RELEASE == "8") {
+    jdkVersionSuffix = openjdkVersion.split("-")[0]
+  }
+  expectVersion = "${expectVersion}${pacthSep}${patchNum}"
+  def expectTagVersion = "${expectVersion}_${jdkVersionSuffix}"
+  return [expectVersion, expectTagVersion]
 }
 
-def checkGithubArtifactName(name) {
-    def tag = githubtag.split("dragonwell-")[1].split("_jdk")[0]
-    def reg_tag = tag.replaceAll('\\+', '\\\\\\+')
-    def ret_value = false
+def validateCheckSum(pkgName, cmpFile) {
+    def shaVal = sh returnStdout: true, script: "sha256sum ${pkgName} | cut -d ' ' -f 1"
+    def checkRes = sh returnStdout: true, script: "cat ${cmpFile} | grep ${shaVal}"
+    if (checkRes == false) {
+        println "${cmpFile} sha256 is wrong"
+        return [false, shaVal]
+    }
+    return [true, shaVal]
+}
+
+def checkPackages(packages) {
+  def usedPlatforms = []
+  if (packages.size() != platforms.size()) {
+    return [false, "Package size is wrong!"]
+  }
+  for (pkg in packages) {
     for (platform in platforms) {
-        def res = name.matches("Alibaba_Dragonwell_${reg_tag}_${platform}.*")
-        if (res == true) {
-            ret_value = res
-            if (name.matches(".*\\.txt")) {
-                putIfAbsent(platform, txt_list)
-            } else {
-                putIfAbsent(platform, pkg_list)
-            }
-            break
-        }
+      if (pkg.contains(platform)) {
+        usedPlatforms.add(platform)
+        break
+      }
     }
-    return "${ret_value}"
+  }
+  if (usedPlatforms.size() < platforms.size()) {
+    for (platform in platforms) {
+      if (!usedPlatforms.contains(platform))
+        println "Miss platform ${platform}"
+    }
+    return [false, "Miss some platform packages!"]
+  }
+  def res = true
+  def msg = "Check packages pass!"
+  for (pkg in packages) {
+    def (ret, val) = validateCheckSum(pkg, "${pkg}.sha256.txt")
+    if (!ret) {
+      res = false
+      msg = "Check sha256 failed"
+    }
+  }
+  return [res, msg]
 }
 
-def putIfAbsent(ele, list) {
-    if (list.contains(ele)) {
-        echo "repeat package/text"
-    } else {
-        list.add(ele)
+node("artifact.checker") {
+  sh "rm -rf *.tar.gz *.txt"
+  URL releaseUrl = new URL("https://api.github.com/repos/alibaba/dragonwell${params.RELEASE}/releases")
+  URL openjdkUrl = new URL("https://api.adoptium.net/v3/assets/latest/${params.RELEASE}/hotspot?vendor=eclipse")
+  def releases = new JsonSlurper().parseText(releaseUrl.text.trim())
+  def preReleaseCard = releases.findAll { it.get("prerelease") == true && it.get("name").contains(typePrefix)}
+  def lastReleaseCard = releases.findAll { it.get("prerelease") == false && it.get("name").contains(typePrefix)}
+  if (lastReleaseCard.size() == 0) {
+    lastReleaseCard = releases.findAll { it.get("prerelease") == false }
+  }
+  def openjdkCard = new JsonSlurper().parseText(openjdkUrl.text.trim())
+  def openjdkRelease = openjdkCard[0].get("release_name")
+  if (preReleaseCard.size() >= 1) {
+    def releaseName = preReleaseCard[0].get("name")
+    def tagName = preReleaseCard[0].get("tag_name")
+    def assets = preReleaseCard[0].get("assets")
+    def lastReleaseName = lastReleaseCard[0].get("name")
+    println """* openjdk release name: ${openjdkRelease}
+* last release name: ${lastReleaseName}
+* release name: ${releaseName}
+* tag name: ${tagName}"""
+    def lastReleaseVersion = lastReleaseName.split("_")[-1]
+    def newVersions = getNewVersion(lastReleaseVersion, openjdkRelease)
+    println """* new version: ${newVersions[0]}
+* new tag version: ${newVersions[1]}"""
+    if (!releaseName.contains(newVersions[0])) {
+      error "Invalid version number!"
     }
-}
-
-def checkGithubLatestRelease(release) {
-    HTML = release.get("html_url")
-    echo "GITHUB is released at ${HTML}"
-    def assets = release.get("assets")
-    def assetsNum = assets.size()
-    echo "GITHUB release artifacts ${assetsNum}"
+    if (!tagName.contains(newVersions[1])) {
+      error "Invalid tag String!"
+    }
+    if (assets.size() % 2 != 0)
+      error "Wrong upload files number, maybe forget to upload *.sha256.txt"
+    def packageList = []
     for (asset in assets) {
-        def name = asset.get("name")
-        echo "GITHUB released ${name}"
-        if (!checkGithubArtifactName(name)) {
-            echo "${name} is invalid package name"
-            return []
+      def assetName = asset.get("name")
+      if (assetName.contains(".sha256.txt")) {
+        def packageName = assetName.split(".sha256")[0]
+        if (!packageList.contains(packageName)) {
+          packageList.add(packageName)
         }
+      }
+      def assetUrl = asset.get("browser_download_url")
+      sh "wget -q ${assetUrl}"
     }
-    println """pkg_list ${pkg_list}
-txt_list ${txt_list}
-platforms ${platforms}
-"""
-    if (pkg_list.size() != platforms.size() || txt_list.size() != platforms.size()) {
-        error "missing publish package/text"
-    } else {
-        addResult("CheckGithubReleaseArtifactsName", true, platforms.join("<br>"))
-        addResult("CheckGithubRleaseArtifactsSum", true, platforms.size())
-    }
-    return assets
-}
-
-def validateCheckSum(pkg_name, cmp_file) {
-    def sha_val = sh returnStdout: true, script: "sha256sum ${pkg_name} | cut -d ' ' -f 1"
-    def check_res = sh returnStdout: true, script: "cat ${cmp_file} | grep ${sha_val}"
-    if (check_res == false) {
-        error "sha256 is wrong"
-        return [false, sha_val]
-    }
-    return [true, sha_val]
-}
-
-def checkArtifactContent(platform) {
-    sh "wget -q https://raw.githubusercontent.com/dragonwell-releng/jenkinsUserContent/master/utils/check_tag.sh"
-    for (pkg in pkgs) {
-        def pkg_name = pkg.get("name")
-        if (pkg_name.matches(".*${platform}.*")) {
-            def suffix = pkg_name.tokenize("\\.").pop()
-            if ("${suffix}" == "txt") {
-                echo "checksum file is ${pkg_name}"
-                def originFile = pkg_name.replace(".sha256.txt", "")
-                sh "wget -q https://github.com/alibaba/dragonwell${params.RELEASE}/releases/download/${githubtag}/${pkg_name} -O ${pkg_name}"
-                sh "wget -q https://github.com/alibaba/dragonwell${params.RELEASE}/releases/download/${githubtag}/${originFile} -O ${originFile}"
-                def (res, val) = validateCheckSum("${originFile}", "${pkg_name}")
-                addResult("Check${platform}Text", res, resultMsg("checksum", [val, res]))
-                sh "rm -rf ${originFile} ${pkg_name}"
-                continue
-            } else if ("${suffix}" == "gz") {
-                suffix = "tar.gz"
-            }
-
-            sh "wget -q https://github.com/alibaba/dragonwell${params.RELEASE}/releases/download/${githubtag}/${pkg_name} -O jdk.${suffix}"
-            def unzipCommand = suffix == "tar.gz" ? "tar xf" : "unzip"
-            sh "${unzipCommand} jdk.${suffix}"
-
-            def java_home = sh returnStdout: true, script: "ls . | grep dragonwell | grep -v ${suffix}"
-            java_home = java_home.trim()
-            if (params.RELEASE == "11") {
-              suffix = publishtag.substring(0, publishtag.lastIndexOf("."))
-              patchNum = publishtag.substring(publishtag.lastIndexOf(".") + 1)
-              newPublishtag = "${suffix}+${patchNum}"
-              println "Release Version 11, change publish tag to ${newPublishtag}"
-            } else {
-              newPublishtag = publishtag
-            }
-            unzippedDirCheck(java_home, newPublishtag)
-            if (platform != "alpine") {
-                def res = sh script: "bash check_tag.sh ${newPublishtag} ${params.RELEASE} ${java_home} ${openjdktag}"
-                addResult("Check${platform}CompressedPackage", res, resultMsg("version", ""))
-            }
-            sh "rm -rf ${java_home}"
-        }
-    }
-}
-
-
-def unzippedDirCheck(java_home, publishtag) {
-    def check_dirname = false;
-    if (params.RELEASE == "17") {
-        check_dirname = java_home.contains(publishtag)
-    } else if (params.RELEASE == "8") {
-        check_dirname = java_home.contains(publishtag)
-    } else if (params.RELEASE == "11" ) {
-        check_dirname = java_home.contains(publishtag)
-    }
-    if (check_dirname == false) {
-        error "compress package dirname is wrong"
-    }
-
-}
-
-
-def strippedOpenJDKTagWithoutBuildNumber(ot) {
-    echo "striping ${ot}"
-    // 11
-    if (ot.contains("+")) {
-        def result = ot.split("\\+")[0]
-        echo "stripped ${result}"
-        return result
-    } else {
-        //8
-        def result = ot.split("-")[0]
-        echo "stripped ${result}"
-        return result
-    }
-}
-
-/**
- * Check the latest release
- */
-pipeline {
-    agent none
-    parameters {
-        choice(name: 'RELEASE', choices: '17\n11\n8\n', description: 'Use which Multiplexing')
-        booleanParam(defaultValue: false,
-                description: 'Use Dragonwell check rule',
-                name: 'DRAGONWELL')
-    }
-    stages {
-        stage('Check Github Artifact format') {
-            agent {
-                label 'artifact.checker'
-            }
-            steps {
-                script {
-                    URL apiUrl = new URL("https://api.github.com/repos/alibaba/dragonwell${params.RELEASE}/releases")
-                    echo "https://api.adoptium.net/v3/assets/latest/${params.RELEASE}/hotspot?vendor=eclipse"
-                    URL openjdkUrl = new URL("https://api.adoptium.net/v3/assets/latest/${params.RELEASE}/hotspot?vendor=eclipse")
-                    def card = new JsonSlurper().parseText(apiUrl.text.trim()).findAll { it.get("prerelease") == true }
-                    def openjdk_card = new JsonSlurper().parseText(openjdkUrl.text.trim())
-                    openjdktag = openjdk_card[0].get("release_name")
-                    def arr = []
-                    githubtag = card[0].get("tag_name")
-                    publishtag = githubtag.split("-")[2].split("_jdk")[0]
-
-                    echo "publish tags ${publishtag}"
-                    echo "openjdktag tags ${openjdktag}"
-                    def prerelease = card[0].get("prerelease")
-                    def draft = card[0].get("draft")
-                    if (draft == true || prerelease == false) {
-                        echo "please check prerelease status!"
-                    }
-                    echo "GITHUB TAG is ${githubtag}"
-                    arr = checkGithubLatestRelease(card[0])
-                    if (card.size() > 1) {
-                        print "PREVIOUS RELEASE"
-                    }
-                    pkgs = arr
-                    if (arr == []) {
-                        error "exist invalid package name"
-                    }
-                    echo "package/text name check PASS"
-                }
-            }
-        }
-        stage('Parallel Job') {
-            parallel {
-                stage("Test On Windows") {
-                    agent {
-                        label "windows"
-                    }
-                    steps {
-                        script {
-                            sh "rm -rf test || mkdir -p test"
-                            dir("test") {
-                                checkArtifactContent("windows")
-                            }
-                        }
-                    }
-                }
-                stage("Test On Linux x64") {
-                    agent {
-                        label "linux&&x64"
-                    }
-                    steps {
-                        script {
-                            sh "rm -rf test || mkdir -p test"
-                            dir("test") {
-                                checkArtifactContent("x64_linux")
-                            }
-                        }
-                    }
-                }
-
-                stage("Test On Linux aarch64") {
-                    agent {
-                        label "linux&&aarch64"
-                    }
-                    steps {
-                        script {
-                            sh "rm -rf test || mkdir -p test"
-                            dir("test") {
-                                checkArtifactContent("aarch64_linux")
-                            }
-                        }
-                    }
-                }
-                stage("Test On Linux x64 alpine") {
-                    agent {
-                        label "linux&&x64"
-                    }
-                    steps {
-                        script {
-                            sh "rm -rf test || mkdir -p test"
-                            dir("test") {
-                                if (platforms.contains("x64_alpine-linux")) {
-                                    checkArtifactContent("alpine")
-                                } else {
-                                    echo "skip \"x64_alpine-linux\""
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        stage('result') {
-            agent {
-                label "artifact.checker"
-            }
-            steps {
-                script {
-                    writeFile file: 'release.json', text: groovy.json.JsonOutput.toJson(results)
-                    sh "rm -rf reports || true"
-                    sh "wget -q https://raw.githubusercontent.com/dragonwell-releng/jenkinsUserContent/master/checker/htmlReporter.py -O htmlReporter.py"
-                    sh "python htmlReporter.py"
-                }
-            }
-            post {
-                always {
-                    publishHTML(target: [allowMissing         : false,
-                                         alwaysLinkToLastBuild: true,
-                                         keepAll              : true,
-                                         reportDir            : 'reports',
-                                         reportFiles          : 'TestResults*.html',
-                                         reportName           : 'Test Reports',
-                                         reportTitles         : 'Test Report'])
-                }
-            }
-        }
-    }
+    def (res, msg) = checkPackages(packageList)
+    if (!res)
+      error msg
+    else
+      println msg
+  } else {
+    error "Cannot find pre-release or name doesn't contain ${typePrefix}!"
+  }
 }
