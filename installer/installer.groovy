@@ -292,7 +292,21 @@ stage('wiki-update') {
                 if (!releasenots.contains("${params.VERSION}")) {
                     print "更新 ${params.VERSION} 到 Alibaba-Dragonwell${slash}${params.RELEASE}-${typePrefix}-Release-Notes.md"
                     URL apiUrl = new URL("https://api.github.com/repos/alibaba/dragonwell${params.RELEASE}/tags")
+                    def page = 10
+                    if (params.RELEASE == "17") {
+                      apiUrl = new URL("https://api.github.com/repos/alibaba/dragonwell${params.RELEASE}/tags?per_page=100&page=${page}")
+                    }
                     def card = new JsonSlurper().parse(apiUrl)
+                    if (params.RELEASE == "17") {
+                      while (page > 0) {
+                        if (card.size() > 1)
+                          break
+                        page -= 1
+                        apiUrl = new URL("https://api.github.com/repos/alibaba/dragonwell${params.RELEASE}/tags?per_page=100&page=${page}")
+                        card = new JsonSlurper().parse(apiUrl)
+                      }
+                      println "page ${page}"
+                    }
                     def fromTag = ""
                     def toTag = ""
                     if (card.size() > 1) {
