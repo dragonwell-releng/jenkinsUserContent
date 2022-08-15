@@ -91,7 +91,7 @@ DOCKER_IMAGES_TEMPLATE5 = "| registry.cn-hangzhou.aliyuncs.com/dragonwell/dragon
 
 if (params.RELEASE == "8") {
     MIRROS_DOWNLOAD_TEMPLATE = """
-# ${params.VERSION}-${typePrefix}
+# ${params.VERSION}-${typePrefix}-Edition
 
 | File name | China mainland | United States |
 |---|---|---|
@@ -103,7 +103,7 @@ if (params.RELEASE == "8") {
 } else if (params.RELEASE == "11") {
     def newTitle = params.VERSION.substring(0, params.VERSION.lastIndexOf("."))
     if (params.GITHUBVERSION.contains("-GA")) {
-      newTitle = "${newTitle}-${typePrefix}-GA"
+      newTitle = "${newTitle}-GA-${typePrefix}-Edition"
     }
     MIRROS_DOWNLOAD_TEMPLATE = """
 # ${newTitle}
@@ -117,7 +117,7 @@ if (params.RELEASE == "8") {
 """
 } else {
     MIRROS_DOWNLOAD_TEMPLATE = """
-# ${params.GITHUBVERSION}-${typePrefix}
+# ${params.GITHUBVERSION}-${typePrefix}-Edition
 
 | File name | China mainland | United States |
 |---|---|---|
@@ -374,9 +374,7 @@ ${gitLogReport}
                             }
                             println newReleasenotes
                             if (params.UPDATE_WIKI) {
-                              def rdFileName = "Alibaba-Dragonwell${slash}${params.RELEASE}-${typePrefix}-Release-Notes.md"
-                              if (params.RELEASE == "17")
-                                rdFileName = "Alibaba-Dragonwell${slash}${params.RELEASE}-${typePrefix}-Edition-Release-Notes.md"
+                              def rdFileName = "Alibaba-Dragonwell${slash}${params.RELEASE}-${typePrefix}-Edition-Release-Notes.md"
                               writeFile file: rdFileName, text: newReleasenotes
                               sh "git add ${rdFileName}"
                               sh "git commit -m \" update ${rdFileName} \""
