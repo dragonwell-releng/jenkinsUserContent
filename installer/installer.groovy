@@ -288,6 +288,9 @@ stage('wiki-update') {
                 sh(script: "docker run  registry.cn-hangzhou.aliyuncs.com/dragonwell/dragonwell:${tagName4Docker}_x86_64_slim java -version 2> tmpt")
                 def fullVersionOutput = sh(script: "cat tmpt", returnStdout: true).trim()
                 print "fullversion is ${fullVersionOutput}"
+                if (!fullVersionOutput.contains("${typePrefix} Edition")) {
+                  error "Invalid version string"
+                }
                 def releasenots = sh(script: "cat Alibaba-Dragonwell${slash}${params.RELEASE}-${typePrefix}-Release-Notes.md", returnStdout: true).trim()
                 if (!releasenots.contains("${params.VERSION}")) {
                     print "更新 ${params.VERSION} 到 Alibaba-Dragonwell${slash}${params.RELEASE}-${typePrefix}-Release-Notes.md"
