@@ -371,9 +371,12 @@ ${gitLogReport}
                             }
                             println newReleasenotes
                             if (params.UPDATE_WIKI) {
-                              writeFile file: "Alibaba-Dragonwell${slash}${params.RELEASE}-${typePrefix}-Release-Notes.md", text: newReleasenotes
-                              sh "git add Alibaba-Dragonwell${slash}${params.RELEASE}-${typePrefix}-Release-Notes.md"
-                              sh "git commit -m \" update Alibaba-Dragonwell${slash}${params.RELEASE}-${typePrefix}-Release-Notes.md \""
+                              def rdFileName = "Alibaba-Dragonwell${slash}${params.RELEASE}-${typePrefix}-Release-Notes.md"
+                              if (params.RELEASE == "17")
+                                rdFileName = "Alibaba-Dragonwell${slash}${params.RELEASE}-${typePrefix}-Edition-Release-Notes.md"
+                              writeFile file: rdFileName, text: newReleasenotes
+                              sh "git add ${rdFileName}"
+                              sh "git commit -m \" update ${rdFileName} \""
                               sh "git push origin HEAD:master"
                               if (fileExists("阿里巴巴Dragonwell${params.RELEASE}-${typePrefix}发布说明.md")) {
                                   print "更新 ${params.VERSION}-${typePrefix} 到 发布说明中文版"
