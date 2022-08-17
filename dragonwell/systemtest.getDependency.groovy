@@ -23,7 +23,7 @@ properties([
   ])
 ])
 
-node("perl") {
+node("perl && dep") {
   def javaHome = "${env.WORKSPACE}/j2sdk-image"
   git branch: "master", url: "https://github.com/adoptium/aqa-tests.git"
   //sh "curl -OLJks 'https://api.adoptopenjdk.net/v3/binary/latest/8/ga/linux/x64/jdk/hotspot/normal/adoptopenjdk'"
