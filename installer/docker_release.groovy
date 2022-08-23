@@ -26,6 +26,27 @@ def containersBranch = "main"
 def typePrefix = params.TYPE ? params.TYPE.capitalize() : "Extended"
 releaseMap = [:]
 
+// check map
+checkRuleMap = [
+  "8": [
+         "centos": ["", "latest"],
+         "ubuntu": [""],
+         "anolis": [""]
+       ],
+  "11": [
+         "centos": ["", "latest"],
+         "ubuntu": [""],
+         "anolis": [""],
+         "alpine": [""]
+       ],
+  "17": [
+         "centos": ["", "latest"],
+         "ubuntu": [""],
+         "anolis": [""],
+         "alpine": [""]
+       ]
+]
+
 def recordByArch(platform, name, downloadUrl) {
   def childMap = releaseMap.get(platform) ? releaseMap.get(platform) : [:]
   def templateMap = ["sha256": "", "url": ""]
@@ -111,11 +132,47 @@ def replaceStrInDockerfile(absoluteFilePath, arch, os, version) {
     }
   }
   writeFile file:absoluteFilePath, text: newContent, encoding: "UTF-8"
-  sh "git diff"
-  //sh "git add . && git commit -m 'Update ${platform} ${os} ${baseName}' && git push"
+  def updateFileName = absoluteFilePath.split("\\./")[1]
+  def diff = sh(returnStdout: true, script: "git diff")
+  if (diff) {
+    sh "git add . && git commit -m 'Update ${updateFileName}' && git push"
+  }
+}
+
+def getTagsByRuleMap(tag, releaseVersion, edition) {
+  def tags = [:]
+  for (e1 in checkRuleMap) {
+    def version = e1.key
+    if (version == releaseVersion) {
+      for (e2 in e1.value) {
+        def os = e2.key
+        for (e3 in e2.value) {
+          def arch = e3
+          def suffixs = os != "anolis" ? [""] : releaseVersion != "17" ? ["-x86_64", "-aarch64", "-x86_64-slim", "-aarch64-slim"] : ["-x86_64", "-aarch64"]
+          if (!arch) {
+            for (suffix in suffixs) {
+              if (edition == "extended" || releaseVersion == "17")
+                tags["${releaseVersion}-${os}${suffix}"] = false
+              tags["${releaseVersion}-${edition}-ga-${os}${suffix}"] = false
+              tags["${tag}-${edition}-ga-${os}${suffix}"] = false
+            }
+          } else if (arch == "latest") {
+            if (edition == "extended" || releaseVersion == "17")
+              tags["latest"] = false
+          }
+        }
+      }
+    }
+  }
+  return tags
+}
+
+def getFalseElementInMap(map) {
+  return map.findAll {e -> !e.value}
 }
 
 node('ossworker' && 'dockerfile') {
+  // get jdkVersion, tagName, releaseAsset
   def repoBaseName = containersRepo.split(":")[-1].split("/")[-1].split("\\.")[0]
   URL releaseUrl = new URL("https://api.github.com/repos/alibaba/dragonwell${params.RELEASE}/releases")
   def releases = new JsonSlurper().parseText(releaseUrl.text.trim())
@@ -144,6 +201,8 @@ node('ossworker' && 'dockerfile') {
 * jdk version: ${jdkVersion}
 * full version: ${fullVersionOutput}
 * final tag: ${finalTag}"""
+
+  // record asset in map
     for (asset in assets) {
       def assetName = asset.get("name")
       def assetDownloadUrl = asset.get("browser_download_url")
@@ -161,7 +220,7 @@ node('ossworker' && 'dockerfile') {
       if (!exist)
       git branch: containersBranch, url: containersRepo
       dir(repoBaseName) {
-        sh "git checkout ${containersBranch} && git reset --hard && git clean -df && git pull origin ${containersBranch}"
+        sh "git checkout ${containersBranch} && git reset --hard HEAD~10 && git clean -df && git pull origin ${containersBranch}"
       }
     }
     def workdir = "${env.WORKSPACE}/${repoBaseName}"
@@ -206,8 +265,58 @@ node('ossworker' && 'dockerfile') {
         newVersions += tagName
       }
       writeFile file:"version", text: newVersions
-      sh "git diff"
-      //sh "git add . && git commit -m 'Update dragonwell${params.RELEASE}-${params.TYPE} version' && git push"
+      def diff = sh(returnStdout: true, script: "git diff")
+      if (diff) {
+        sh "git add . && git commit -m 'Update dragonwell${params.RELEASE}-${params.TYPE} version' && git push"
+      }
     }
-  } 
+
+    // check
+    def tags = getTagsByRuleMap(finalTag, params.RELEASE, params.TYPE)
+    println """* tags: ${tags}"""
+    dir(env.WORKSPACE) {
+      sh "rm -rf get_acr_tags.py"
+      sh "wget https://raw.githubusercontent.com/dragonwell-releng/jenkinsUserContent/master/utils/get_acr_tags.py -O get_acr_tags.py"
+      sh "cp /root/.docker/getImageTags.sh ."
+      def imageRegistry = "registry.cn-hangzhou.aliyuncs.com/dragonwell/dragonwell"
+      def req = sh(returnStdout: true, script: "bash getImageTags.sh 1")
+      def resp = new JsonSlurper().parseText(req)
+      def totalCount = resp.get("body").get("TotalCount")
+      println "totalCount: ${totalCount}"
+      def recordMap = tags
+      timeout(time: 1, unit: 'HOURS') {
+        dir(workdir) {
+          def newTag = "release${params.RELEASE}-${params.TYPE}-${finalTag}"
+          def tryCreateTag = sh(returnStatus: true, script: "git tag ${newTag}")
+          if (tryCreateTag) {
+            sh "git tag -d ${newTag}"
+            def tryDelRemoteTag = sh(returnStatus: true, script: "git push origin :${newTag}")
+            sh "git tag -a ${newTag} -m ''"
+          }
+          sh "git push origin ${newTag}"
+        }
+        while (recordMap) {
+          def pageNos = totalCount > 100 ? [1, 2] : [1]
+          for (pageNo in pageNos) {
+            req = sh(returnStdout: true, script: "bash getImageTags.sh ${pageNo}")
+            println req
+            resp = new JsonSlurper().parseText(req)
+            for (image in resp.get("body").get("Images")) {
+              def imageTag = image.Tag
+              if (recordMap.containsKey(imageTag)) {
+                recordMap[imageTag] = true
+              }
+            }
+          }
+          recordMap = getFalseElementInMap(recordMap)
+          //break // debug
+          if (recordMap) {
+            println """* rest tags: ${recordMap}
+sleep 60s..."""
+            sleep 60 // sleep 60s
+          }
+        }
+      }
+    }
+  }
 }

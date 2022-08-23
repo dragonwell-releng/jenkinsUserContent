@@ -9,7 +9,7 @@ from alibabacloud_tea_openapi import models as open_api_models
 from alibabacloud_cr20181201 import models as cr_20181201_models
 from alibabacloud_tea_util import models as util_models
 from alibabacloud_tea_util.client import Client as UtilClient
-
+import json
 import argparse
 
 def args_parser():
@@ -69,7 +69,7 @@ class Sample:
         )
         runtime = util_models.RuntimeOptions()
         try:
-            print(client.list_repo_tag_with_options(list_repo_tag_request, runtime))
+            print(json.dumps(client.list_repo_tag_with_options(list_repo_tag_request, runtime).to_map()))
         except Exception as error:
             UtilClient.assert_as_string(error.message)
 
@@ -78,5 +78,5 @@ if __name__ == '__main__':
     args = args_parser().__dict__
     Sample.main(key=args["access_key"], pwd=args["access_password"],
                 endpoint=args["endpoint"], instance_id=args["instance_id"],
-                repo_id=args["repo_id"], page_size=args["repo_id"],
-                page_no=args["repo_id"])
+                repo_id=args["repo_id"], page_size=args["page_size"],
+                page_no=args["page_no"])
