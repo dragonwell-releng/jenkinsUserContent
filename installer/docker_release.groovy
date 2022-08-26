@@ -156,8 +156,11 @@ def getTagsByRuleMap(tag, releaseVersion, edition) {
           def suffixs = os != "anolis" ? [""] : releaseVersion != "17" ? ["-x86_64", "-aarch64", "-x86_64-slim", "-aarch64-slim"] : ["-x86_64", "-aarch64"]
           if (!arch) {
             for (suffix in suffixs) {
-              if (edition == "extended" || releaseVersion == "17")
+              if (edition == "extended" || releaseVersion == "17") {
                 tags["${releaseVersion}-${os}${suffix}"] = false
+                if (os == "anolis" && suffix && !suffix.contains("-slim"))
+                  tags["${releaseVersion}${suffix}"] = false
+              }
               tags["${releaseVersion}-${edition}-ga-${os}${suffix}"] = false
               tags["${tag}-${edition}-ga-${os}${suffix}"] = false
             }
@@ -362,14 +365,14 @@ sleep 60s..."""
         } else {
           sh "${enableCLICMD} && docker manifest push ${imageRegistry}:${tag}"
         }
-        if (params.TYPE == "extended" && tag.contains("extended") && !tag.contains("-slim")) {
-          createManifestRes = sh(returnStatus: true, script: "${enableCLICMD} && docker manifest create --insecure ${imageRegistry}:${params.RELEASE}-latest ${imageRegistry}:${tag}")
-          if (createManifestRes) {
-            println "*** docker manifest ${imageRegistry}:${params.RELEASE}-latest exist"
-          } else {
-            sh "${enableCLICMD} && docker manifest push ${imageRegistry}:${params.RELEASE}-latest"
-          }
-        }
+        //if (params.TYPE == "extended" && params.RELEASE == "11") {
+        //  createManifestRes = sh(returnStatus: true, script: "${enableCLICMD} && docker manifest create --insecure ${imageRegistry}:latest ${imageRegistry}:${tag}")
+        //  if (createManifestRes) {
+        //    println "*** docker manifest ${imageRegistry}:latest exist"
+        //  } else {
+        //    sh "${enableCLICMD} && docker manifest push ${imageRegistry}:latest"
+        //  }
+        //}
       }
     }
   }
