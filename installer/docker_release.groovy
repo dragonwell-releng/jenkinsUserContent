@@ -278,12 +278,12 @@ node('ossworker' && 'dockerfile') {
 
     // check
     def tags = getTagsByRuleMap(finalTag, params.RELEASE, params.TYPE)
+    def imageRegistry = "registry.cn-hangzhou.aliyuncs.com/dragonwell/dragonwell"
     println """* tags: ${tags}"""
     dir(env.WORKSPACE) {
       sh "rm -rf get_acr_tags.py"
       sh "wget https://raw.githubusercontent.com/dragonwell-releng/jenkinsUserContent/master/utils/get_acr_tags.py -O get_acr_tags.py"
       sh "cp /root/.docker/getImageTags.sh ."
-      def imageRegistry = "registry.cn-hangzhou.aliyuncs.com/dragonwell/dragonwell"
       def req = ""
       for (i in 0..5) {
         req = sh(returnStdout: true, script: "bash getImageTags.sh 1")
@@ -330,6 +330,44 @@ node('ossworker' && 'dockerfile') {
             println """* rest tags: ${recordMap}
 sleep 60s..."""
             sleep 60 // sleep 60s
+          }
+        }
+      }
+    }
+    
+    // add docker manifest
+    imageRegistry = "dragonwell-registry.cn-hangzhou.cr.aliyuncs.com/dragonwell/dragonwell"
+    dir(env.WORKSPACE) {
+      def multiArchTag = []
+      def enableCLICMD = "export DOCKER_CLI_EXPERIMENTAL=enabled"
+      for (e in tags) {
+        def thisTagName = e.key
+        def suffix = thisTagName.contains("x86_64") ? "x86_64" : thisTagName.contains("aarch64") ? "aarch64" : ""
+        def slimSuffix = thisTagName.contains("-slim") ? "-slim" : ""
+        if (suffix){
+          def targetTag = e.key.substring(0, e.key.lastIndexOf("-${suffix}"))
+          targetTag += slimSuffix
+          if (!multiArchTag.contains(targetTag))
+            multiArchTag.add(targetTag)
+        }
+      }
+      println "* multi arch tags: ${multiArchTag}"
+      for (tag in multiArchTag){
+        def slimSuffix = tag.contains("-slim") ? "-slim" : ""
+        def prefix = slimSuffix ? tag.split("-slim")[0] : tag
+        println "${tag} = ${prefix}-x86_64${slimSuffix} + ${prefix}-aarch64${slimSuffix}"
+        def createManifestRes = sh(returnStatus: true, script: "${enableCLICMD} && docker manifest create --insecure ${imageRegistry}:${tag} ${imageRegistry}:${prefix}-x86_64${slimSuffix} ${imageRegistry}:${prefix}-aarch64${slimSuffix}")
+        if (createManifestRes) {
+          println "*** docker manifest ${imageRegistry}:${tag} exist"
+        } else {
+          sh "${enableCLICMD} && docker manifest push ${imageRegistry}:${tag}"
+        }
+        if (params.TYPE == "extended" && tag.contains("extended") && !tag.contains("-slim")) {
+          createManifestRes = sh(returnStatus: true, script: "${enableCLICMD} && docker manifest create --insecure ${imageRegistry}:${params.RELEASE}-latest ${imageRegistry}:${tag}")
+          if (createManifestRes) {
+            println "*** docker manifest ${imageRegistry}:${params.RELEASE}-latest exist"
+          } else {
+            sh "${enableCLICMD} && docker manifest push ${imageRegistry}:${params.RELEASE}-latest"
           }
         }
       }
