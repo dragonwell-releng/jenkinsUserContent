@@ -14,6 +14,11 @@ properties([
     string(
       description: 'Release type, such as extended, standard',
       name: 'TYPE'
+    ),
+    booleanParam(
+      defaultValue: true,
+      description: 'check',
+      name: 'CHECK'
     )
   ])
 ])
@@ -29,18 +34,18 @@ releaseMap = [:]
 // check map
 checkRuleMap = [
   "8": [
-         "centos": ["", "latest"],
+         "centos": [""],
          "ubuntu": [""],
          "anolis": [""]
        ],
   "11": [
-         "centos": ["", "latest"],
+         "centos": [""],
          "ubuntu": [""],
          "anolis": [""],
          "alpine": [""]
        ],
   "17": [
-         "centos": ["", "latest"],
+         "centos": [""],
          "ubuntu": [""],
          "anolis": [""],
          "alpine": [""]
@@ -231,7 +236,7 @@ node('ossworker' && 'dockerfile') {
         for (dockerfile in dockerfiles) {
           def splited = dockerfile.split("/")
           def releaseVersion = splited[1]
-          def releaseOS = splited[2]
+          def releaseOS = splited[-2]
           def fileBaseName = splited[-1]
           if (fileBaseName.contains("Dockerfile.releases") && releaseVersion == params.RELEASE) {
             def fileSuffix = fileBaseName.split("\\.")[-1]
@@ -279,27 +284,38 @@ node('ossworker' && 'dockerfile') {
       sh "wget https://raw.githubusercontent.com/dragonwell-releng/jenkinsUserContent/master/utils/get_acr_tags.py -O get_acr_tags.py"
       sh "cp /root/.docker/getImageTags.sh ."
       def imageRegistry = "registry.cn-hangzhou.aliyuncs.com/dragonwell/dragonwell"
-      def req = sh(returnStdout: true, script: "bash getImageTags.sh 1")
+      def req = ""
+      for (i in 0..5) {
+        req = sh(returnStdout: true, script: "bash getImageTags.sh 1")
+        if (req) break
+        sleep 2
+      }
       def resp = new JsonSlurper().parseText(req)
       def totalCount = resp.get("body").get("TotalCount")
       println "totalCount: ${totalCount}"
       def recordMap = tags
       timeout(time: 1, unit: 'HOURS') {
         dir(workdir) {
-          def newTag = "release${params.RELEASE}-${params.TYPE}-${finalTag}"
-          def tryCreateTag = sh(returnStatus: true, script: "git tag ${newTag}")
-          if (tryCreateTag) {
-            sh "git tag -d ${newTag}"
-            def tryDelRemoteTag = sh(returnStatus: true, script: "git push origin :${newTag}")
-            sh "git tag -a ${newTag} -m ''"
+          if (recordMap && !params.CHECK) {
+            def newTag = "release${params.RELEASE}-${params.TYPE}-${finalTag}"
+            def tryCreateTag = sh(returnStatus: true, script: "git tag ${newTag}")
+            if (tryCreateTag) {
+              sh "git tag -d ${newTag}"
+              def tryDelRemoteTag = sh(returnStatus: true, script: "git push origin :${newTag}")
+              sh "git tag -a ${newTag} -m ''"
+            }
+            sh "git push origin ${newTag}"
           }
-          sh "git push origin ${newTag}"
         }
         while (recordMap) {
           def pageNos = totalCount > 100 ? [1, 2] : [1]
           for (pageNo in pageNos) {
-            req = sh(returnStdout: true, script: "bash getImageTags.sh ${pageNo}")
-            println req
+            for (i in 0..5) {
+              req = sh(returnStdout: true, script: "bash getImageTags.sh ${pageNo}")
+              if (req) break
+              sleep 2
+}
+            // println req
             resp = new JsonSlurper().parseText(req)
             for (image in resp.get("body").get("Images")) {
               def imageTag = image.Tag
