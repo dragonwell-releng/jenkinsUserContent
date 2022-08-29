@@ -332,7 +332,7 @@ node('ossworker' && 'dockerfile') {
           if (recordMap) {
             println """* rest tags: ${recordMap}
 sleep 60s..."""
-            sleep 60 // sleep 60s
+            sleep 60 * 20 // sleep 60s
           }
         }
       }
@@ -343,6 +343,8 @@ sleep 60s..."""
     dir(env.WORKSPACE) {
       def multiArchTag = []
       def enableCLICMD = "export DOCKER_CLI_EXPERIMENTAL=enabled"
+      // clean manifest list
+      sh "rm -rf ~/.docker/manifests/*"
       for (e in tags) {
         def thisTagName = e.key
         def suffix = thisTagName.contains("x86_64") ? "x86_64" : thisTagName.contains("aarch64") ? "aarch64" : ""
@@ -362,8 +364,13 @@ sleep 60s..."""
         def createManifestRes = sh(returnStatus: true, script: "${enableCLICMD} && docker manifest create --insecure ${imageRegistry}:${tag} ${imageRegistry}:${prefix}-x86_64${slimSuffix} ${imageRegistry}:${prefix}-aarch64${slimSuffix}")
         if (createManifestRes) {
           println "*** docker manifest ${imageRegistry}:${tag} exist"
-        } else {
+          sh "${enableCLICMD} && docker manifest create --insecure ${imageRegistry}:${tag} ${imageRegistry}:${prefix}-x86_64${slimSuffix} ${imageRegistry}:${prefix}-aarch64${slimSuffix} --amend"
+        }
+        try {
+          sh "${enableCLICMD} && docker manifest annotate  --arch amd64 ${imageRegistry}:${tag} ${imageRegistry}:${prefix}-x86_64${slimSuffix} && docker manifest annotate  --arch arm64 ${imageRegistry}:${tag} ${imageRegistry}:${prefix}-aarch64${slimSuffix}"
           sh "${enableCLICMD} && docker manifest push ${imageRegistry}:${tag}"
+        } catch(e) {
+          println "docker manifest push fail" // 8-anolis maybe fail
         }
         //if (params.TYPE == "extended" && params.RELEASE == "11") {
         //  createManifestRes = sh(returnStatus: true, script: "${enableCLICMD} && docker manifest create --insecure ${imageRegistry}:latest ${imageRegistry}:${tag}")
