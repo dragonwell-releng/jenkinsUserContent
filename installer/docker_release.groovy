@@ -332,7 +332,7 @@ node('ossworker' && 'dockerfile') {
           if (recordMap) {
             println """* rest tags: ${recordMap}
 sleep 60s..."""
-            sleep 60 * 20 // sleep 60s
+            sleep 2000 // it'll be removed if we can know when existed tag is updated
           }
         }
       }
