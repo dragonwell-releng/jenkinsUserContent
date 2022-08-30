@@ -261,16 +261,16 @@ node('ossworker' && 'dockerfile') {
         }
       }
       def oldVersions = readFile "version"
-      def newVersions = ""
-      for (oldVersion in oldVersions.split("\n")) {
-        if (oldVersion.contains("-${params.TYPE}-${params.RELEASE}")) {
-          newVersions += tagName + "\n"
-        } else {
-          newVersions += oldVersion + "\n"
-        }
-      }
-      if (oldVersions.trim() == newVersions.trim()) {
-        newVersions += tagName
+      def newVersions = oldVersions
+      if (!oldVersions.split("\n").contains(tagName)) {
+        newVersions += "\n" + tagName
+        //for (oldVersion in oldVersions.split("\n")) {
+        //  if (oldVersion.contains("-${params.TYPE}-${params.RELEASE}")) {
+        //    newVersions += tagName + "\n"
+        //  } else {
+        //    newVersions += oldVersion + "\n"
+        //  }
+        //}
       }
       writeFile file:"version", text: newVersions
       def diff = sh(returnStdout: true, script: "git diff")
