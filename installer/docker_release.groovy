@@ -15,6 +15,10 @@ properties([
       description: 'Release type, such as extended, standard',
       name: 'TYPE'
     ),
+    string(
+      description: 'X64 jdk url in github/oss',
+      name: 'JDK_URL'
+    ),
     booleanParam(
       defaultValue: true,
       description: 'check',
@@ -179,7 +183,7 @@ def getFalseElementInMap(map) {
   return map.findAll {e -> !e.value}
 }
 
-node('ossworker' && 'dockerfile') {
+node('ossworker' && 'dockerfile' && 'x64') {
   // get jdkVersion, tagName, releaseAsset
   def repoBaseName = containersRepo.split(":")[-1].split("/")[-1].split("\\.")[0]
   URL releaseUrl = new URL("https://api.github.com/repos/alibaba/dragonwell${params.RELEASE}/releases")
@@ -190,7 +194,13 @@ node('ossworker' && 'dockerfile') {
     def releaseName = release.get("name")
     def tagName = release.get("tag_name")
     def assets = release.get("assets")
-    sh(script: "docker run  registry.cn-hangzhou.aliyuncs.com/dragonwell/dragonwell:${tagName.replace("+", ".")}_x86_64_slim java -version 2> tmpt")
+    def test_dir = "test_dir"
+    sh "rm -rf ${test_dir} && mkdir -p ${test_dir}"
+    dir(test_dir) {
+      sh "wget ${params.JDK_URL} -O jdk.tar.gz && tar zxvf jdk.tar.gz && rm -rf jdk.tar.gz"
+      def jdk_dir = sh(returnStdout: true, script: "ls").trim()
+      sh "${jdk_dir}/bin/java -version 2> ../tmpt"
+    }
     def fullVersionOutput = sh(script: "cat tmpt", returnStdout: true).trim()
     def jdkVersion = fullVersionOutput.split("\n")[1].split("build ")[1].split("\\)")[0].trim()
     def finalTag = jdkVersion
