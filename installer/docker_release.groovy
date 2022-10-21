@@ -307,6 +307,9 @@ node('ossworker' && 'dockerfile' && 'x64') {
       def totalCount = resp.get("body").get("TotalCount")
       println "totalCount: ${totalCount}"
       def recordMap = tags
+      def today = sh(returnStdout: true, script: "date +%s").strip()
+      today = today.toInteger() / 1000
+      def baseDate = today - 864000 // 10 days ago
       timeout(time: 1, unit: 'HOURS') {
         dir(workdir) {
           if (recordMap && !params.CHECK) {
@@ -327,12 +330,12 @@ node('ossworker' && 'dockerfile' && 'x64') {
               req = sh(returnStdout: true, script: "bash getImageTags.sh ${pageNo}")
               if (req) break
               sleep 2
-}
+        }
             // println req
             resp = new JsonSlurper().parseText(req)
             for (image in resp.get("body").get("Images")) {
               def imageTag = image.Tag
-              if (recordMap.containsKey(imageTag)) {
+              if (recordMap.containsKey(imageTag) && image.get("ImageUpdate") >= baseDate) {
                 recordMap[imageTag] = true
               }
             }
