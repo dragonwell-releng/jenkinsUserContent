@@ -183,12 +183,12 @@ def getFalseElementInMap(map) {
   return map.findAll {e -> !e.value}
 }
 
-node('ossworker' && 'dockerfile' && 'x64') {
+node('ossworker && dockerfile && x64') {
   // get jdkVersion, tagName, releaseAsset
   def repoBaseName = containersRepo.split(":")[-1].split("/")[-1].split("\\.")[0]
   URL releaseUrl = new URL("https://api.github.com/repos/alibaba/dragonwell${params.RELEASE}/releases")
   def releases = new JsonSlurper().parseText(releaseUrl.text.trim())
-  def releaseCard = releases.findAll { it.get("prerelease") == false && it.get("name").contains(typePrefix)}
+  def releaseCard = releases.findAll { it.get("prerelease") == true && it.get("name").contains(typePrefix)}
   if (releaseCard.size() > 0) {
     def release = releaseCard[0]
     def releaseName = release.get("name")
@@ -307,8 +307,9 @@ node('ossworker' && 'dockerfile' && 'x64') {
       def totalCount = resp.get("body").get("TotalCount")
       println "totalCount: ${totalCount}"
       def recordMap = tags
-      def today = sh(returnStdout: true, script: "date +%s").strip()
-      today = today.toInteger() / 1000
+      sh "date"
+      def today = sh(returnStdout: true, script: "date +%s")
+      today = today.split("\n")[0].toInteger()
       def baseDate = today - 864000 // 10 days ago
       timeout(time: 1, unit: 'HOURS') {
         dir(workdir) {
@@ -335,7 +336,9 @@ node('ossworker' && 'dockerfile' && 'x64') {
             resp = new JsonSlurper().parseText(req)
             for (image in resp.get("body").get("Images")) {
               def imageTag = image.Tag
-              if (recordMap.containsKey(imageTag) && image.get("ImageUpdate") >= baseDate) {
+              def updateDate = image.get("ImageUpdate") / 1000
+              println "Image ${imageTag}, today: ${today}, 10 days ago: ${baseDate}, update date: ${updateDate}"
+              if (recordMap.containsKey(imageTag) && updateDate >= baseDate) {
                 recordMap[imageTag] = true
               }
             }
@@ -345,7 +348,7 @@ node('ossworker' && 'dockerfile' && 'x64') {
           if (recordMap) {
             println """* rest tags: ${recordMap}
 sleep 60s..."""
-            sleep 2000 // it'll be removed if we can know when existed tag is updated
+            sleep 1000 // it'll be removed if we can know when existed tag is updated
           }
         }
       }
