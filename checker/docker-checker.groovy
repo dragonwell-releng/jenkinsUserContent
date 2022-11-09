@@ -33,23 +33,30 @@ node("artifact.checker") {
       // docker 不允许用+
       GITHUBTAG = GITHUBTAG.replace("+", ".")
     }
+    EDITION = GITHUBTAG.split("-")[1]
+    FULL_VERSION = GITHUBTAG.split("_jdk")[0].split("-")[-1]
+    VERSION = FULL_VERSION.split("\\.")[0]
+    OPT = GITHUBTAG.split("-")[-1]
   }
 }
 
 
 jobs = [:]
+DOCKER_REPO = "dragonwell-registry.cn-hangzhou.cr.aliyuncs.com/dragonwell/dragonwell"
 jobs["x64_linux"] = {
   node("linux&&x64&&dockerChecker") {
-    sh "docker pull registry.cn-hangzhou.aliyuncs.com/dragonwell/dragonwell:${GITHUBTAG}_x86_64_slim"
-    def res = sh(script: "docker run  registry.cn-hangzhou.aliyuncs.com/dragonwell/dragonwell:${GITHUBTAG}_x86_64_slim  /opt/alibaba/dragonwell${params.RELEASE}/bin/java -version", returnStatus: true)
+    def tag = "${VERSION}-${EDITION}-${OPT}-anolis-slim"
+    sh "docker pull ${DOCKER_REPO}:${tag}"
+    def res = sh(script: "docker run ${DOCKER_REPO}:${tag}  /opt/java/openjdk/bin/java -version", returnStatus: true)
     if (res)
       error "test failed"
   }
 }
 jobs["aarch64_linux"] = {
   node("linux&&aarch64&&dockerChecker") {
-    sh "docker pull registry.cn-hangzhou.aliyuncs.com/dragonwell/dragonwell:${GITHUBTAG}_aarch64_slim"
-    def res = sh(script: "docker run  registry.cn-hangzhou.aliyuncs.com/dragonwell/dragonwell:${GITHUBTAG}_aarch64_slim  /opt/alibaba/dragonwell${params.RELEASE}/bin/java -version", returnStatus: true)
+    def tag = "${VERSION}-${EDITION}-${OPT}-anolis-slim"
+    sh "docker pull ${DOCKER_REPO}:${tag}"
+    def res = sh(script: "docker run ${DOCKER_REPO}:${tag}  /opt/java/openjdk/bin/java -version", returnStatus: true)
     if (res)
       error "test failed"
   }
@@ -58,8 +65,9 @@ jobs["aarch64_linux"] = {
 if (params.RELEASE != "8") {
   jobs["x64_alpine_linux"] = {
     node("linux&&x64&&dockerChecker") {
-      sh "docker pull registry.cn-hangzhou.aliyuncs.com/dragonwell/dragonwell:${GITHUBTAG}_alpine_x86_64"
-      def res = sh(script: "docker run  registry.cn-hangzhou.aliyuncs.com/dragonwell/dragonwell:${GITHUBTAG}_alpine_x86_64 /opt/alibaba/dragonwell${params.RELEASE}/bin/java -version", returnStatus: true)
+      def tag = "${VERSION}-${EDITION}-${OPT}-alpine"
+      sh "docker pull ${DOCKER_REPO}:${tag}"
+      def res = sh(script: "docker run ${DOCKER_REPO}:${tag} /opt/java/openjdk/bin/java -version", returnStatus: true)
       if (res)
         error "test failed"
     }
