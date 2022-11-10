@@ -45,7 +45,8 @@ jobs = [:]
 DOCKER_REPO = "dragonwell-registry.cn-hangzhou.cr.aliyuncs.com/dragonwell/dragonwell"
 jobs["x64_linux"] = {
   node("linux&&x64&&dockerChecker") {
-    def tag = "${VERSION}-${EDITION}-${OPT}-anolis-slim"
+    def slim = params.RELEASE == "17" ? "" : "-slim"
+    def tag = "${VERSION}-${EDITION}-${OPT}-anolis${slim}"
     sh "docker pull ${DOCKER_REPO}:${tag}"
     def res = sh(script: "docker run ${DOCKER_REPO}:${tag}  /opt/java/openjdk/bin/java -version", returnStatus: true)
     if (res)
@@ -54,7 +55,8 @@ jobs["x64_linux"] = {
 }
 jobs["aarch64_linux"] = {
   node("linux&&aarch64&&dockerChecker") {
-    def tag = "${VERSION}-${EDITION}-${OPT}-anolis-slim"
+    def slim = params.RELEASE == "17" ? "" : "-slim"
+    def tag = "${VERSION}-${EDITION}-${OPT}-anolis${slim}"
     sh "docker pull ${DOCKER_REPO}:${tag}"
     def res = sh(script: "docker run ${DOCKER_REPO}:${tag}  /opt/java/openjdk/bin/java -version", returnStatus: true)
     if (res)
