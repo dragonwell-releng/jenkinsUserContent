@@ -337,7 +337,9 @@ node('ossworker && dockerfile && x64') {
             for (image in resp.get("body").get("Images")) {
               def imageTag = image.Tag
               def updateDate = image.get("ImageUpdate") / 1000
-              println "Image ${imageTag}, today: ${today}, 10 days ago: ${baseDate}, update date: ${updateDate}"
+              if (imageTag.contains(finalTag)) {
+                println "Image ${imageTag}, today: ${today}, 10 days ago: ${baseDate}, update date: ${updateDate}"
+              }
               if (recordMap.containsKey(imageTag) && updateDate >= baseDate) {
                 recordMap[imageTag] = true
               }
@@ -346,8 +348,9 @@ node('ossworker && dockerfile && x64') {
           recordMap = getFalseElementInMap(recordMap)
           //break // debug
           if (recordMap) {
+            sh "date"
             println """* rest tags: ${recordMap}
-sleep 60s..."""
+sleep 1000s..."""
             sleep 1000 // it'll be removed if we can know when existed tag is updated
           }
         }
