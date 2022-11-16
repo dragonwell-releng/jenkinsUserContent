@@ -387,7 +387,7 @@ sleep 1000s..."""
         }
         try {
           sh "${enableCLICMD} && docker manifest annotate  --arch amd64 ${imageRegistry}:${tag} ${imageRegistry}:${prefix}-x86_64${slimSuffix} && docker manifest annotate  --arch arm64 ${imageRegistry}:${tag} ${imageRegistry}:${prefix}-aarch64${slimSuffix}"
-          sh "${enableCLICMD} && docker manifest push ${imageRegistry}:${tag}"
+          sh "${enableCLICMD} && docker manifest push ${imageRegistry}:${tag} -p"
         } catch(e) {
           println "docker manifest push fail" // 8-anolis maybe fail
         }
