@@ -188,7 +188,7 @@ node('ossworker && dockerfile && x64') {
   def repoBaseName = containersRepo.split(":")[-1].split("/")[-1].split("\\.")[0]
   URL releaseUrl = new URL("https://api.github.com/repos/alibaba/dragonwell${params.RELEASE}/releases")
   def releases = new JsonSlurper().parseText(releaseUrl.text.trim())
-  def releaseCard = releases.findAll { it.get("prerelease") == true && it.get("name").contains(typePrefix) && !it.get("name").contains(".json") && !it.get("name").contains(".sig")}
+  def releaseCard = releases.findAll { it.get("prerelease") == true && it.get("name").contains(typePrefix)}
   if (releaseCard.size() > 0) {
     def release = releaseCard[0]
     def releaseName = release.get("name")
@@ -223,6 +223,8 @@ node('ossworker && dockerfile && x64') {
   // record asset in map
     for (asset in assets) {
       def assetName = asset.get("name")
+      if (assetName.contains(".json") || assetName.contains(".sig"))
+        continue
       def assetDownloadUrl = asset.get("browser_download_url")
       if (assetName.contains("windows")) {
         recordByArch("windows", assetName, assetDownloadUrl)
@@ -235,8 +237,12 @@ node('ossworker && dockerfile && x64') {
     println """* releaseMap: ${releaseMap}"""
     dir(env.WORKSPACE) {
       def exist = fileExists repoBaseName
-      if (!exist)
-      git branch: containersBranch, url: containersRepo
+      if (!exist) {
+        sh "mkdir -p repoBaseName"
+        dir(repoBaseName) {
+          git branch: containersBranch, url: containersRepo
+        }
+      }
       dir(repoBaseName) {
         sh "git checkout ${containersBranch} && git reset --hard HEAD~10 && git clean -df && git pull origin ${containersBranch}"
       }
