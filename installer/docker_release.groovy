@@ -188,7 +188,7 @@ node('ossworker && dockerfile && x64') {
   def repoBaseName = containersRepo.split(":")[-1].split("/")[-1].split("\\.")[0]
   URL releaseUrl = new URL("https://api.github.com/repos/alibaba/dragonwell${params.RELEASE}/releases")
   def releases = new JsonSlurper().parseText(releaseUrl.text.trim())
-  def releaseCard = releases.findAll { it.get("prerelease") == true && it.get("name").contains(typePrefix)}
+  def releaseCard = releases.findAll { it.get("prerelease") == true && it.get("name").contains(typePrefix) && !it.get("name").contains(".json") && !it.get("name").contains(".sig")}
   if (releaseCard.size() > 0) {
     def release = releaseCard[0]
     def releaseName = release.get("name")
