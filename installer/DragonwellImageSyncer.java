@@ -147,6 +147,12 @@ public class DragonwellImageSyncer {
             String version = matcher.group(1);
             String detailedVersion = matcher.group(2) == null ? "" : matcher.group(2);
             String arch = matcher.group(4) == null ? "" : matcher.group(4);  // x86_64/aarch64
+
+            if (arch != null) {
+                // not a multi-arch image. skipping this.
+                continue;
+            }
+
             String slim = matcher.group(5) == null ? "" : matcher.group(5);
 
             String newAnolisTag = version + detailedVersion + "-" + anolisVersion + slim + arch;
