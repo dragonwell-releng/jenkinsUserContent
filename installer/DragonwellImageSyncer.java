@@ -15,7 +15,7 @@ public class DragonwellImageSyncer {
 
     private static final String JSON = "images.json";
 
-    private static final Map<String, String> ANOLIS_OS_VERSIONS = new HashMap<>() {  // sha256 -> version
+    private static final Map<String, String> ANOLIS_OS_VERSIONS = new HashMap<String, String>() {  // sha256 -> version
         {
             // docker-ls tag --raw-manifest --parse-history alibabadragonwell/dragonwell:17-anolis
             //
