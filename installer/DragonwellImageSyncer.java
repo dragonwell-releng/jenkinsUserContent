@@ -87,8 +87,10 @@ public class DragonwellImageSyncer {
 
         final String DIGEST_PREFIX = "- digest: sha256:";
 
+        StringBuilder sb = new StringBuilder();
         String s;
         while ((s = stdInput.readLine()) != null) {
+            sb.append(s).append(System.lineSeparator());
             if (s.startsWith(DIGEST_PREFIX)) {
                 System.out.println(s);  // debug
                 // we only match the first digest: the base layer.
@@ -100,7 +102,7 @@ public class DragonwellImageSyncer {
                 return anolisVersion;
             }
         }
-        throw new RuntimeException("Should not reach here");
+        throw new RuntimeException("Should not reach here: { " + sb.toString() + " }");
     }
 
     public static List<String[]> getTags() throws IOException {
@@ -117,7 +119,13 @@ public class DragonwellImageSyncer {
         while ((s = stdInput.readLine()) != null) {
             String tag;
             if (s.startsWith("- ") && tagOkay(tag = s.substring("- ".length()))) {
+                if (tag.contains("-x86_64") || tag.contains("-aarch64")) {
+                    // Skip non multi-arch images
+                    continue;
+                }
+
                 System.out.println(tag);  // debug
+
                 String anolisVersion = anolisVersion(tag);
                 list.add(new String[] { tag, anolisVersion });
             }
@@ -130,35 +138,30 @@ public class DragonwellImageSyncer {
         for (String[] pair : dragonwellTags) {
             String tag = pair[0];
             String anolisVersion = pair[1];
-            // 8.13.14(-extended-ga)-anolis(-x86_64)(-slim)
-            Pattern p1 = Pattern.compile("(\\d+(?:\\.\\d+)*)(-.*)?(-anolis)(-[^-]*)?(-[^-]*)?$");
+            // (8.13.14-extended-ga)-anolis(-x86_64)(-slim)
+            Pattern p1 = Pattern.compile("(.*)(-anolis)(.*)$");
             Matcher matcher = p1.matcher(tag);
             if (!matcher.find()) {
                 System.err.println("[Fatal] " + tag + " didn't match! Skip this one.");
                 continue;
             }
-            // => [1] 11
-            // => [2] -extended-ga (may be null)
-            // => [3] -anolis
-            // => [4] -aarch64 (may be null)
-            // => [5] -slim (may be null)
+            // => [1] 11-extended-ga (may be null)
+            // => [2] -anolis
+            // => [3] -aarch64-alim (may be null)
             for (int i = 1; i <= matcher.groupCount(); i++) {
                 System.out.println("=> [" + i + "] " + matcher.group(i));  // debug
             }
 
             // openanolis/dragonwell:8-extended-8.6-slim-x86_64
             String version = matcher.group(1);
-            String detailedVersion = matcher.group(2) == null ? "" : matcher.group(2);
-            String arch = matcher.group(4) == null ? "" : matcher.group(4);  // x86_64/aarch64
 
-            if (!arch.isEmpty()) {
+            String slim = matcher.group(3) == null ? "" : matcher.group(3);
+            if (slim.contains("-x86_64") || slim.contains("-aarch64")) {
                 // not a multi-arch image. skipping this.
-                continue;
+                throw new Error("-x86_64 and -aarch64 should have been filtered!");
             }
 
-            String slim = matcher.group(5) == null ? "" : matcher.group(5);
-
-            String newAnolisTag = version + detailedVersion + "-" + anolisVersion + slim + arch;
+            String newAnolisTag = version + "-" + anolisVersion + slim;
             System.out.println("[Preview] " + tag + " => " + newAnolisTag);  // debug
 
             list.add(new String[] { tag, newAnolisTag });
