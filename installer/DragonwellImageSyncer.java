@@ -73,6 +73,9 @@ public class DragonwellImageSyncer {
     }
 
     public static String anolisVersion(String tag) throws IOException {
+        // if (true) {
+        //    return "8.6";
+        // }
         // docker-ls tag --raw-manifest --parse-history alibabadragonwell/dragonwell:17-anolis
         BufferedReader stdInput = runProcess(
                 DOCKER_LS,
@@ -148,7 +151,7 @@ public class DragonwellImageSyncer {
             String detailedVersion = matcher.group(2) == null ? "" : matcher.group(2);
             String arch = matcher.group(4) == null ? "" : matcher.group(4);  // x86_64/aarch64
 
-            if (arch != null) {
+            if (!arch.isEmpty()) {
                 // not a multi-arch image. skipping this.
                 continue;
             }
