@@ -8,7 +8,11 @@ import java.util.regex.Pattern;
 
 public class DragonwellImageSyncer {
 
+    private static final String DOCKERHUB_REGISTRY        = "registry.hub.docker.com";
     private static final String DRAGONWELL_DOCKERHUB_REPO = "alibabadragonwell/dragonwell";
+    private static final String DRAGONWELL_ACR_REGISTRY   = "dragonwell-registry.cn-hangzhou.cr.aliyuncs.com";
+    private static final String DRAGONWELL_ACR_REPO       = "dragonwell/dragonwell";
+    private static final String ANOLIS_ACR_REGISTRY       = "anolis-registry.cn-zhangjiakou.cr.aliyuncs.com";
     private static final String ANOLIS_TARGET_REPO        = "openanolis/dragonwell";
     private static final String DOCKER_LS                 = "./docker-ls";
     private static final String IMAGE_SYNCER              = "./image-syncer";
@@ -175,9 +179,9 @@ public class DragonwellImageSyncer {
         for (int i = 0; i < mapping.size(); i++) {
             String[] map = mapping.get(i);
             sb.append("  ");
-            sb.append("\"").append("registry.hub.docker.com/").append(DRAGONWELL_DOCKERHUB_REPO).append(":").append(map[0]).append("\"");
+            sb.append("\"").append(DRAGONWELL_ACR_REGISTRY).append("/").append(DRAGONWELL_ACR_REPO).append(":").append(map[0]).append("\"");
             sb.append(": ");
-            sb.append("\"").append("anolis-registry.cn-zhangjiakou.cr.aliyuncs.com/").append(ANOLIS_TARGET_REPO).append(":").append(map[1]).append("\"");
+            sb.append("\"").append(ANOLIS_ACR_REGISTRY).append("/").append(ANOLIS_TARGET_REPO).append(":").append(map[1]).append("\"");
             if (i != mapping.size()-1) {
                 sb.append(",");
             }
