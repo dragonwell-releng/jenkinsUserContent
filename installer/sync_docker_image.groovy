@@ -11,7 +11,8 @@ node('ossworker && dockerfile && x64') {
     }
     timeout(time: 8, unit: 'HOURS') {
       // Test OpenAnolis images
-      def res = sh "cp ~/DragonwellImageTester.java . && javac DragonwellImageTester.java && export LC_ALL=zh_CN.utf8 && java DragonwellImageTester dragonwell"
+      // Need "apt -y install locales; locale-gen zh_CN.utf8" first
+      def res = sh "cp ~/DragonwellImageTester.java . && javac DragonwellImageTester.java && export LANG=zh_CN.utf8 && java DragonwellImageTester dragonwell"
       if (res)
         error "pipeline failed"
     }
