@@ -10,6 +10,12 @@ node('ossworker && dockerfile && x64') {
       }
     }
     timeout(time: 8, unit: 'HOURS') {
+      // Test OpenAnolis images
+      def res = sh "cp ~/DragonwellImageTester.java . && javac DragonwellImageTester.java && export LC_ALL=zh_CN.utf8 && java DragonwellImageTester dragonwell"
+      if (res)
+        error "pipeline failed"
+    }
+    timeout(time: 8, unit: 'HOURS') {
       // Sync to OpenAnolis
       sh "wget https://raw.githubusercontent.com/dragonwell-releng/jenkinsUserContent/master/installer/DragonwellImageSyncer.java -O DragonwellImageSyncer.java && javac DragonwellImageSyncer.java && java DragonwellImageSyncer"
     }
