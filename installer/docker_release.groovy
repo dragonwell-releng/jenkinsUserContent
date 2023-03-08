@@ -363,49 +363,5 @@ sleep 1000s..."""
       }
     }
     
-    // add docker manifest
-    imageRegistry = "dragonwell-registry.cn-hangzhou.cr.aliyuncs.com/dragonwell/dragonwell"
-    dir(env.WORKSPACE) {
-      def multiArchTag = []
-      def enableCLICMD = "export DOCKER_CLI_EXPERIMENTAL=enabled"
-      // clean manifest list
-      sh "rm -rf ~/.docker/manifests/*"
-      for (e in tags) {
-        def thisTagName = e.key
-        def suffix = thisTagName.contains("x86_64") ? "x86_64" : thisTagName.contains("aarch64") ? "aarch64" : ""
-        def slimSuffix = thisTagName.contains("-slim") ? "-slim" : ""
-        if (suffix){
-          def targetTag = e.key.substring(0, e.key.lastIndexOf("-${suffix}"))
-          targetTag += slimSuffix
-          if (!multiArchTag.contains(targetTag))
-            multiArchTag.add(targetTag)
-        }
-      }
-      println "* multi arch tags: ${multiArchTag}"
-      for (tag in multiArchTag){
-        def slimSuffix = tag.contains("-slim") ? "-slim" : ""
-        def prefix = slimSuffix ? tag.split("-slim")[0] : tag
-        println "${tag} = ${prefix}-x86_64${slimSuffix} + ${prefix}-aarch64${slimSuffix}"
-        def createManifestRes = sh(returnStatus: true, script: "${enableCLICMD} && docker manifest create --insecure ${imageRegistry}:${tag} ${imageRegistry}:${prefix}-x86_64${slimSuffix} ${imageRegistry}:${prefix}-aarch64${slimSuffix}")
-        if (createManifestRes) {
-          println "*** docker manifest ${imageRegistry}:${tag} exist"
-          sh "${enableCLICMD} && docker manifest create --insecure ${imageRegistry}:${tag} ${imageRegistry}:${prefix}-x86_64${slimSuffix} ${imageRegistry}:${prefix}-aarch64${slimSuffix} --amend"
-        }
-        try {
-          sh "${enableCLICMD} && docker manifest annotate  --arch amd64 ${imageRegistry}:${tag} ${imageRegistry}:${prefix}-x86_64${slimSuffix} && docker manifest annotate  --arch arm64 ${imageRegistry}:${tag} ${imageRegistry}:${prefix}-aarch64${slimSuffix}"
-          sh "${enableCLICMD} && docker manifest push ${imageRegistry}:${tag} -p"
-        } catch(e) {
-          println "docker manifest push fail" // 8-anolis maybe fail
-        }
-        //if (params.TYPE == "extended" && params.RELEASE == "11") {
-        //  createManifestRes = sh(returnStatus: true, script: "${enableCLICMD} && docker manifest create --insecure ${imageRegistry}:latest ${imageRegistry}:${tag}")
-        //  if (createManifestRes) {
-        //    println "*** docker manifest ${imageRegistry}:latest exist"
-        //  } else {
-        //    sh "${enableCLICMD} && docker manifest push ${imageRegistry}:latest"
-        //  }
-        //}
-      }
-    }
   }
 }
