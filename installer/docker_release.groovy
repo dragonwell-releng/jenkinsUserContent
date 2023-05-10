@@ -157,7 +157,7 @@ def getTagsByRuleMap(tag, releaseVersion, edition) {
         def os = e2.key
         for (e3 in e2.value) {
           def arch = e3
-          def suffixs = os != "anolis" ? [""] : releaseVersion != "17" ? ["-x86_64", "-aarch64", "-x86_64-slim", "-aarch64-slim"] : ["-x86_64", "-aarch64"]
+          def suffixs = os != "anolis" ? [""] : releaseVersion != "17" ? ["-slim"] : [""]
           if (!arch) {
             for (suffix in suffixs) {
               if (edition == "extended" || releaseVersion == "17") {
