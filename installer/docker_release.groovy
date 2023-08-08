@@ -144,7 +144,7 @@ def replaceStrInDockerfile(absoluteFilePath, arch, os, version) {
   def updateFileName = absoluteFilePath.split("\\./")[1]
   def diff = sh(returnStdout: true, script: "git diff")
   if (diff) {
-    sh "git add . && git commit -m 'Update ${updateFileName}' && git push"
+    sh "git add . && git commit -m 'Update ${updateFileName}' && git push --set-upstream origin main"
   }
 }
 
@@ -356,8 +356,8 @@ node('ossworker && dockerfile && x64') {
           if (recordMap) {
             sh "date"
             println """* rest tags: ${recordMap}
-sleep 1000s..."""
-            sleep 1000 // it'll be removed if we can know when existed tag is updated
+sleep 300s..."""
+            sleep 300 // it'll be removed if we can know when existed tag is updated
           }
         }
       }
