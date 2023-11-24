@@ -4,6 +4,7 @@ properties([
   parameters([
     choice(
       choices: [
+        "21",
         "17",
         "11",
         "8"
@@ -49,6 +50,12 @@ checkRuleMap = [
          "alpine": [""]
        ],
   "17": [
+         "centos": [""],
+         "ubuntu": [""],
+         "anolis": [""],
+         "alpine": [""]
+       ],
+  "21": [
          "centos": [""],
          "ubuntu": [""],
          "anolis": [""],
