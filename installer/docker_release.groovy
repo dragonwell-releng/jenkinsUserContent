@@ -164,7 +164,7 @@ def getTagsByRuleMap(tag, releaseVersion, edition) {
         def os = e2.key
         for (e3 in e2.value) {
           def arch = e3
-          def suffixs = os != "anolis" ? [""] : releaseVersion != "17" ? ["-slim"] : [""]
+          def suffixs = os != "anolis" ? [""] : releaseVersion != "17" && releaseVersion != "21" ? ["-slim"] : [""]
           if (!arch) {
             for (suffix in suffixs) {
               if (edition == "extended" || releaseVersion == "17") {
@@ -193,7 +193,7 @@ def getFalseElementInMap(map) {
 node('ossworker && dockerfile && x64') {
   // get jdkVersion, tagName, releaseAsset
   def repoBaseName = containersRepo.split(":")[-1].split("/")[-1].split("\\.")[0]
-  URL releaseUrl = new URL("https://api.github.com/repos/alibaba/dragonwell${params.RELEASE}/releases")
+  URL releaseUrl = new URL("https://api.github.com/repos/dragonwell-project/dragonwell${params.RELEASE}/releases")
   def releases = new JsonSlurper().parseText(releaseUrl.text.trim())
   def releaseCard = releases.findAll { it.get("prerelease") == true && it.get("name").contains(typePrefix)}
   if (releaseCard.size() > 0) {

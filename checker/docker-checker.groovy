@@ -7,6 +7,7 @@ properties([
   parameters([
     choice(
       choices: [
+        "21",
         "17",
         "11",
         "8"
@@ -24,12 +25,12 @@ properties([
 def typePrefix = params.TYPE ? params.TYPE.capitalize() : "Extended"
   
 node("artifact.checker") {
-  URL apiUrl = new URL("https://api.github.com/repos/alibaba/dragonwell${params.RELEASE}/releases")
+  URL apiUrl = new URL("https://api.github.com/repos/dragonwell-project/dragonwell${params.RELEASE}/releases")
   def card = new JsonSlurper().parseText(apiUrl.text.trim()).findAll { it.get("prerelease") == true && it.get("name").contains(typePrefix) }
   if (card.size() >= 1) {
     GITHUBTAG = card[0].get("tag_name")
     println GITHUBTAG
-    if (params.RELEASE == "17") {
+    if (params.RELEASE == "17" || params.RELEASE == "21") {
       // docker 不允许用+
       GITHUBTAG = GITHUBTAG.replace("+", ".")
     }
@@ -45,7 +46,7 @@ jobs = [:]
 DOCKER_REPO = "dragonwell-registry.cn-hangzhou.cr.aliyuncs.com/dragonwell/dragonwell"
 jobs["x64_linux"] = {
   node("linux&&x64&&dockerChecker") {
-    def slim = params.RELEASE == "17" ? "" : "-slim"
+    def slim = params.RELEASE == "17" || params.RELEASE == "21" ? "" : "-slim"
     def tag = "${VERSION}-${EDITION}-${OPT}-anolis${slim}"
     sh "docker pull ${DOCKER_REPO}:${tag}"
     def res = sh(script: "docker run ${DOCKER_REPO}:${tag}  /opt/java/openjdk/bin/java -version", returnStatus: true)
@@ -55,7 +56,7 @@ jobs["x64_linux"] = {
 }
 jobs["aarch64_linux"] = {
   node("linux&&aarch64&&dockerChecker") {
-    def slim = params.RELEASE == "17" ? "" : "-slim"
+    def slim = params.RELEASE == "17" || params.RELEASE == "21" ? "" : "-slim"
     def tag = "${VERSION}-${EDITION}-${OPT}-anolis${slim}"
     sh "docker pull ${DOCKER_REPO}:${tag}"
     def res = sh(script: "docker run ${DOCKER_REPO}:${tag}  /opt/java/openjdk/bin/java -version", returnStatus: true)
