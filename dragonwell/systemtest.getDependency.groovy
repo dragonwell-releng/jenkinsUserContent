@@ -24,7 +24,7 @@ properties([
 ])
 
 node("perl && dep") {
-  def javaHome = "${env.WORKSPACE}/j2sdk-image"
+  //def javaHome = "${env.WORKSPACE}/j2sdk-image"
   git branch: "master", url: "https://github.com/adoptium/aqa-tests.git"
   //sh "curl -OLJks 'https://api.adoptopenjdk.net/v3/binary/latest/8/ga/linux/x64/jdk/hotspot/normal/adoptopenjdk'"
   def systemtestDir = "${env.WORKSPACE}/aqa-systemtest"
@@ -41,8 +41,10 @@ node("perl && dep") {
   dir(stfDir) {
     sh "git reset --hard && git pull"
   }
-  sh "ant -f ./aqa-systemtest/openjdk.build/build.xml -Djava.home=${javaHome}/jre -Dprereqs_root=${env.WORKSPACE}/systemtest_prereqs configure"
-  sh "ant -f ./aqa-systemtest/openjdk.test.mauve/build.xml -Djava.home=${javaHome}/jre -Dprereqs_root=${env.WORKSPACE}/systemtest_prereqs configure"
+  //sh "ant -f ./aqa-systemtest/openjdk.build/build.xml -Djava.home=${javaHome}/jre -Dprereqs_root=${env.WORKSPACE}/systemtest_prereqs configure"
+  //sh "ant -f ./aqa-systemtest/openjdk.test.mauve/build.xml -Djava.home=${javaHome}/jre -Dprereqs_root=${env.WORKSPACE}/systemtest_prereqs configure"
+  sh "ant -f ./aqa-systemtest/openjdk.build/build.xml -Dprereqs_root=${env.WORKSPACE}/systemtest_prereqs configure"
+  sh "ant -f ./aqa-systemtest/openjdk.test.mauve/build.xml -Dprereqs_root=${env.WORKSPACE}/systemtest_prereqs configure"
   archiveArtifacts artifacts: "systemtest_prereqs/apache-ant/lib/ant-launcher.jar", fingerprint: true, allowEmptyArchive: true
   archiveArtifacts artifacts: "systemtest_prereqs/asm/asm.jar", fingerprint: true, allowEmptyArchive: true
   archiveArtifacts artifacts: "systemtest_prereqs/cvsclient/org-netbeans-lib-cvsclient.jar", fingerprint: true, allowEmptyArchive: true
